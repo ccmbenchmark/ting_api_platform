@@ -4,9 +4,13 @@
 /composer.phar
 /composer.lock
 /src/Resources/public/
-/var/*
+/var/
 /vendor/
 /public/css/
 /public/images/
 /public/js/
 /public/bundles/
+
+###> friends-of-behat/symfony-extension ###
+/behat.yml
+###< friends-of-behat/symfony-extension ###

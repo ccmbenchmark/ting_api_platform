@@ -1,3 +1,4 @@
+@postgresql
 Feature: Ting filter for api platform
   Background:
     Given I add "accept" header equal to "application/json"
@@ -208,7 +209,7 @@ Feature: Ting filter for api platform
         """
         [
             {
-                 "name": "test1",
+                "name": "test1",
                 "value": "value1",
                 "valuePartial": "test",
                 "valueStart": "test",

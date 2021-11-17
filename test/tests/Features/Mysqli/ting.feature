@@ -1,3 +1,4 @@
+@mysqli
 Feature: Ting bridge for api platform
   Background:
     Given I add "accept" header equal to "application/json"

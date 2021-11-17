@@ -4,7 +4,7 @@ ting:
       namespace: CCMBenchmark\Ting\Driver\Mysqli
       charset: utf8
       master:
-        host:     mysqli
+        host:     '%env(MYSQL_HOST)%'
         port:     3306
         user:     mysql
         password: 12345
@@ -12,7 +12,7 @@ ting:
       namespace: CCMBenchmark\Ting\Driver\Pgsql
       charset: utf8
       master:
-        host: pgsql
+        host: '%env(PGSQL_HOST)%'
         port: 5432
         user: postgres
         password: 12345

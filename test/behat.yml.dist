@@ -11,3 +11,5 @@ default:
             base_url: 'http://localhost:80'
             goutte: ~
         Behatch\Extension: ~
+        FriendsOfBehat\SymfonyExtension:
+            bootstrap: tests/bootstrap.php

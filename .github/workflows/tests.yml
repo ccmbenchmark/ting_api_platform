@@ -5,13 +5,25 @@ on:
   pull_request:
 
 jobs:
-  run:
-    runs-on: ubuntu-18.04
+  behat-mariadb:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['7.1', '7.2', '7.3', '7.4', '8.0']
-        deps: ['latest', 'lowest']
-    name: Run Unit Tests on PHP ${{ matrix.php }} with ${{ matrix.deps }} dependencies
+        php: ['7.2', '7.3', '7.4']
+
+    services:
+      mysqli:
+        image: mariadb:latest
+        env:
+          MYSQL_USER: mysql
+          MYSQL_PASSWORD: 12345
+          MYSQL_DATABASE: mydatabase
+          MYSQL_ROOT_PASSWORD: 12345
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=10s --health-retries=10
+
+    name: Run Behat Tests with PHP ${{ matrix.php }} against MariaDB
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,15 +32,96 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: bcmath, bz2, gettext, mbstring, memcached, mcrypt, mysqli, opcache, pdo_mysql, zip, pdo, intl, json, pdo_pgsql, pgsql, session, simplexml, xml
-          tools: composer:v1, pecl
+          extensions: bcmath, bz2, gettext, mbstring, memcached, mcrypt, mysqli, pdo_mysql, zip, pdo, intl, json, pdo_pgsql, pgsql, session, simplexml, xml
+          tools: composer, pecl
+
+      - name: Setup database structure
+        run: |
+          mysql -h 127.0.0.1 -uroot -p12345 mydatabase < ./test/docker/dump.mysqli.sql
+          mysql -h 127.0.0.1 -uroot -p12345 mydatabase -e "SHOW DATABASES;"
+
 
       - name: Install vendors
-        run: composer install --prefer-source --no-interaction
+        run: |
+          composer install
+          mkdir tmp-vendor/
+          cp composer.json tmp-vendor/composer.json
+          cp -R src tmp-vendor/src/
+          cd test/
+          cp .env.github .env
+          mkdir -p vendor/ccmbenchmark/ting-api-platform
+          ln -s ../tmp-vendor vendor/ccmbenchmark/ting-api-platform
+          composer install
 
-      - name: Install lowest deps
-        run: composer update --prefer-source --no-interaction --prefer-lowest
-        if: ${{ matrix.deps }} == "lowest"
+      - name: Run php server
+        run: |
+          cd test
+          sudo php -S localhost:80 -t public &> /dev/null &
 
-      - name: Run Atoum tests
-        run: php vendor/bin/atoum
+      - name: Run Behat tests
+        run: |
+          cd test
+          vendor/bin/behat --tags='@mysqli'
+
+  behat-postgresql:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['7.2', '7.3', '7.4']
+
+    services:
+      mysqli:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 12345
+          POSTGRES_DB: mydatabase
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    name: Run Behat Tests with PHP ${{ matrix.php }} against PostgreSQL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: bcmath, bz2, gettext, mbstring, memcached, mcrypt, mysqli, pdo_mysql, zip, pdo, intl, json, pdo_pgsql, pgsql, session, simplexml, xml
+          tools: composer, pecl
+
+      - name: Setup database structure
+        env:
+          PGPASSWORD: 12345
+        run: |
+          sudo apt-get install postgresql-client
+          psql -U postgres -h 127.0.0.1 -d mydatabase < ./test/docker/dump.pgsql.sql
+
+
+      - name: Install vendors
+        run: |
+          composer install
+          mkdir tmp-vendor/
+          cp composer.json tmp-vendor/composer.json
+          cp -R src tmp-vendor/src/
+          cd test/
+          cp .env.github .env
+          mkdir -p vendor/ccmbenchmark/ting-api-platform
+          ln -s ../tmp-vendor vendor/ccmbenchmark/ting-api-platform
+          composer install
+
+      - name: Run php server
+        run: |
+          cd test
+          sudo php -S localhost:80 -t public &> /dev/null &
+
+      - name: Run Behat tests
+        run: |
+          cd test
+          vendor/bin/behat --tags='@postgresql'
