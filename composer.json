@@ -8,13 +8,13 @@
     },
     "minimum-stability" : "stable",
     "require": {
-        "php": ">=7.1",
-        "api-platform/core": "~2.5",
-        "ccmbenchmark/ting_bundle": "~3.0"
+        "php": ">=8.1",
+        "api-platform/core": "~3.1",
+        "ccmbenchmark/ting_bundle": "dev-feature/symfony/6"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.0",
         "phpstan/phpstan-symfony": "^1.0",
-        "phpstan/phpstan-phpunit": "^1.0"
+        "phpstan/phpstan-phpunit": "^1.3"
     }
 }
