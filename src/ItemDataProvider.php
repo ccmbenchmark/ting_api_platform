@@ -2,33 +2,31 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Core\DataProvider\ItemDataProviderInterface;
-use ApiPlatform\Core\Exception\ResourceClassNotSupportedException;
+use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ProviderInterface;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use CCMBenchmark\Ting\Repository\Repository;
-use CCMBenchmark\TingBundle\Repository\RepositoryFactory;
-use PommProject\Foundation\Pomm;
+use Symfony\Component\HttpFoundation\RequestStack;
 
-class ItemDataProvider implements ItemDataProviderInterface
+class ItemDataProvider implements ProviderInterface
 {
-    /**
-     * @var RepositoryProvider
-     */
-    private $repositoryProvider;
-
-    public function __construct(RepositoryProvider $repositoryProvider)
-    {
-        $this->repositoryProvider = $repositoryProvider;
+    public function __construct(
+        private RepositoryProvider $repositoryProvider,
+        private RequestStack $requestStack,
+    ) {
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getItem(string $resourceClass, $id, string $operationName = null, array $context = [])
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
-        /** @var Repository $repository */
-        $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return [];
+        }
 
-        return $repository->get($id);
+        /** @var Repository $repository */
+        $repository = $this->repositoryProvider->getRepositoryFromResource($operation->getClass());
+
+        return $repository->get($request->query->get('id'));
     }
 }
+

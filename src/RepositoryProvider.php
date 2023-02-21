@@ -2,7 +2,7 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Core\Exception\ResourceClassNotSupportedException;
+use ApiPlatform\Exception\ResourceClassNotSupportedException;
 use CCMBenchmark\Ting\MetadataRepository;
 use CCMBenchmark\Ting\Repository\Metadata;
 use CCMBenchmark\Ting\Repository\Repository;
@@ -13,22 +13,14 @@ use function class_exists;
 class RepositoryProvider
 {
     /**
-     * @var MetadataRepository
-     */
-    private $metadataRepository;
-    /**
-     * @var RepositoryFactory
-     */
-    private $ting;
-    /**
      * @var string
      */
     private $repositoryName = '';
 
-    public function __construct(RepositoryFactory $ting,MetadataRepository $metadataRepository)
-    {
-        $this->ting = $ting;
-        $this->metadataRepository = $metadataRepository;
+    public function __construct(
+        private RepositoryFactory $ting,
+        private MetadataRepository $metadataRepository
+    ) {
     }
 
     /**
@@ -60,3 +52,4 @@ class RepositoryProvider
         return $repository;
     }
 }
+

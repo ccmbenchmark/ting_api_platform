@@ -2,7 +2,7 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Core\Exception\ItemNotFoundException;
+use ApiPlatform\Exception\ItemNotFoundException;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
@@ -67,3 +67,4 @@ final class WriteListener
         return $this;
     }
 }
+

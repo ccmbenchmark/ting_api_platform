@@ -2,13 +2,11 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Core\Api\FilterLocatorTrait;
-use ApiPlatform\Core\DataProvider\CollectionDataProviderInterface;
-use ApiPlatform\Core\Exception\ResourceClassNotSupportedException;
-use ApiPlatform\Core\Metadata\Resource\Factory\ResourceMetadataFactoryInterface;
+use ApiPlatform\Api\FilterLocatorTrait;
+use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
-use CCMBenchmark\Ting\MetadataRepository;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
 use Psr\Container\ContainerInterface;
@@ -23,51 +21,30 @@ use function is_string;
 use function sprintf;
 use function str_replace;
 
-class CollectionDataProvider implements CollectionDataProviderInterface
+class CollectionDataProvider implements ProviderInterface
 {
     use FilterLocatorTrait;
 
     const PAGE_PARAMETER_NAME_DEFAULT = 'page';
 
-    /**
-     * @var RepositoryProvider
-     */
-    private $repositoryProvider;
-    /**
-     * @var MetadataRepository
-     */
-    private $metadataRepository;
-    /**
-     * @var RequestStack
-     */
-    private $requestStack;
-    private $pagination;
-    private $order;
-
     public function __construct(
-        RepositoryProvider $repositoryProvider,
+        private RepositoryProvider $repositoryProvider,
         ContainerInterface $filterLocator,
-        ResourceMetadataFactoryInterface $resourceMetadataFactory,
-        RequestStack $requestStack,
-        array $pagination,
-        array $order
+        private RequestStack $requestStack,
+        private array $pagination,
+        private array $order,
     ) {
-        $this->repositoryProvider = $repositoryProvider;
-        $this->resourceMetadataFactory = $resourceMetadataFactory;
-        $this->requestStack = $requestStack;
-        $this->pagination = $pagination;
-        $this->order = $order;
         $this->setFilterLocator($filterLocator);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getCollection(string $resourceClass, string $operationName = null)
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
+        $resourceClass = $operation->getClass();
+        $operationName = $operation->getName();
+
         $request = $this->requestStack->getCurrentRequest();
         if (null === $request) {
-            return;
+            return [];
         }
 
         $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
@@ -82,15 +59,16 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         $builder = $repository->getQueryBuilder(Repository::QUERY_SELECT);
         $builder->cols($fields);
         $builder->from($repository->getMetadata()->getTable());
-        $this->getWhere($request, $repository, $builder);
+        $this->getWhere($operation, $request, $repository, $builder);
         $this->getCurrentPage($request, $builder);
         $this->getItemsPerPage($request, $builder);
         $this->getOrder($request, $builder);
         $query = $repository->getQuery($builder->getStatement());
-        return $query->query($repository->getCollection(new HydratorSingleObject()));
+
+        return iterator_to_array($query->query($repository->getCollection(new HydratorSingleObject())));
     }
 
-    private function getCurrentPage(Request $request, SelectInterface $queryBuilder)
+    private function getCurrentPage(Request $request, SelectInterface $queryBuilder): void
     {
         $page = $request->query->getInt(
             $this->pagination['page_parameter_name'] ?? static::PAGE_PARAMETER_NAME_DEFAULT,
@@ -109,7 +87,7 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         $queryBuilder->offset($page * $itemsPerPage);
     }
 
-    private function getItemsPerPage(Request $request, SelectInterface $queryBuilder)
+    private function getItemsPerPage(Request $request, SelectInterface $queryBuilder): void
     {
         $queryBuilder->limit($request->query->get(
             $this->pagination['items_per_page_parameter_name'],
@@ -117,11 +95,7 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         ));
     }
 
-    /**
-     * @param Request $request
-     * @return array|string
-     */
-    private function getOrder(Request $request, SelectInterface $queryBuilder)
+    private function getOrder(Request $request, SelectInterface $queryBuilder): void
     {
         $properties = $request->query->get($this->order['order_parameter_name']);
         if ($properties === null) {
@@ -137,7 +111,7 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         }
     }
 
-    private function getWhere(Request $request, Repository $repository, SelectInterface $queryBuilder)
+    private function getWhere(Operation $operation, Request $request, Repository $repository, SelectInterface $queryBuilder): void
     {
         $properties = $repository->getMetadata()->getFields();
 
@@ -145,7 +119,7 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         foreach ($properties as $property) {
             if ($request->query->has($property['fieldName'])) {
                 $value = $request->query->get($property['fieldName']);
-                $where = $this->getClauseFilter($repository->getMetadata()->getEntity(), 'get', $property['columnName'], $value);
+                $where = $this->getClauseFilter($operation, $property['columnName'], $value);
             }
         }
         if ($where != '') {
@@ -156,10 +130,9 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         }
     }
 
-    private function getClauseFilter(string $resourceClass, string $operationName, string $property, $value): string
+    private function getClauseFilter(Operation $operation, string $property, $value): string
     {
-        $resourceMetadata = $this->resourceMetadataFactory->create($resourceClass);
-        $resourceFilters = $resourceMetadata->getCollectionOperationAttribute($operationName, 'filters', [], true);
+        $resourceFilters = $operation->getFilters();
 
         $where = '';
         if (empty($resourceFilters)) {
@@ -169,7 +142,7 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         foreach ($resourceFilters as $filterName) {
             $filter = $this->getFilter($filterName);
             if ($filter instanceof FilterInterface) {
-                $where = $filter->addClause($property, $value, $resourceClass);
+                $where = $filter->addClause($property, $value, $operation->getClass());
             } else {
                 if (is_array($value)) {
                     $where = sprintf('%s in (%s)', $property, '<<' . implode('>>,<<', $value).'>>');
@@ -179,12 +152,10 @@ class CollectionDataProvider implements CollectionDataProviderInterface
             }
         }
 
-
-
         return $where;
     }
 
-    private function cast($value)
+    private function cast($value): string
     {
         if (is_string($value)) {
             return "<<$value>>";
@@ -193,3 +164,4 @@ class CollectionDataProvider implements CollectionDataProviderInterface
         return $value;
     }
 }
+
