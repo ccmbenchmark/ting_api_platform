@@ -37,6 +37,9 @@ class CollectionDataProvider implements ProviderInterface
         $this->setFilterLocator($filterLocator);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
         $resourceClass = $operation->getClass();
