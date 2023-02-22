@@ -19,7 +19,7 @@ class ItemDataProvider implements ProviderInterface
     /**
      * @inheritdoc
      */
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?object
     {
         $request = $this->requestStack->getCurrentRequest();
         if (null === $request) {
@@ -29,7 +29,7 @@ class ItemDataProvider implements ProviderInterface
         /** @var Repository $repository */
         $repository = $this->repositoryProvider->getRepositoryFromResource($operation->getClass());
 
-        return $repository->get($request->query->get('id'));
+        return $repository->get($request->get('uuid'));
     }
 }
 

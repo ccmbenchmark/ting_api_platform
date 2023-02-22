@@ -17,10 +17,7 @@ services:
     class: 'CCMBenchmark\Ting\ApiPlatform\CollectionDataProvider'
     arguments:
       - '@api_platform.ting.repository_provider'
-      - '@api_platform.filter_locator'
       - '@request_stack'
-      - '%api_platform.ting.collection.pagination%'
-      - '%api_platform.ting.collection.order%'
     tags:
       - { name: 'api_platform.collection_data_provider' }
 
@@ -48,4 +45,3 @@ services:
     arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
     tags:
       - { name: 'api_platform.ting.search_filter' }
-

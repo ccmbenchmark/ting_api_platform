@@ -23,18 +23,12 @@ use function str_replace;
 
 class CollectionDataProvider implements ProviderInterface
 {
-    use FilterLocatorTrait;
-
     const PAGE_PARAMETER_NAME_DEFAULT = 'page';
 
     public function __construct(
         private RepositoryProvider $repositoryProvider,
-        ContainerInterface $filterLocator,
         private RequestStack $requestStack,
-        private array $pagination,
-        private array $order,
     ) {
-        $this->setFilterLocator($filterLocator);
     }
 
     /**
@@ -63,18 +57,18 @@ class CollectionDataProvider implements ProviderInterface
         $builder->cols($fields);
         $builder->from($repository->getMetadata()->getTable());
         $this->getWhere($operation, $request, $repository, $builder);
-        $this->getCurrentPage($request, $builder);
-        $this->getItemsPerPage($request, $builder);
-        $this->getOrder($request, $builder);
+        $this->getCurrentPage($operation, $request, $builder);
+        $this->getItemsPerPage($operation, $request, $builder);
+        $this->getOrder($operation, $request, $builder);
         $query = $repository->getQuery($builder->getStatement());
 
         return iterator_to_array($query->query($repository->getCollection(new HydratorSingleObject())));
     }
 
-    private function getCurrentPage(Request $request, SelectInterface $queryBuilder): void
+    private function getCurrentPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
     {
         $page = $request->query->getInt(
-            $this->pagination['page_parameter_name'] ?? static::PAGE_PARAMETER_NAME_DEFAULT,
+            $operation->getPaginationType() ?? static::PAGE_PARAMETER_NAME_DEFAULT,
             1
         );
         if ($page < 2) {
@@ -83,24 +77,24 @@ class CollectionDataProvider implements ProviderInterface
 
         $page -= 1;
         $itemsPerPage = $request->query->getInt(
-            $this->pagination['items_per_page_parameter_name'],
-            $this->pagination['items_per_page']
+            'itemsPerPage',
+            $operation->getPaginationItemsPerPage()
         );
 
         $queryBuilder->offset($page * $itemsPerPage);
     }
 
-    private function getItemsPerPage(Request $request, SelectInterface $queryBuilder): void
+    private function getItemsPerPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
     {
         $queryBuilder->limit($request->query->get(
-            $this->pagination['items_per_page_parameter_name'],
-            $this->pagination['items_per_page']
+            'itemsPerPage',
+            $operation->getPaginationItemsPerPage()
         ));
     }
 
-    private function getOrder(Request $request, SelectInterface $queryBuilder): void
+    private function getOrder(Operation $operation, Request $request, SelectInterface $queryBuilder): void
     {
-        $properties = $request->query->get($this->order['order_parameter_name']);
+        $properties = $operation->getOrder();
         if ($properties === null) {
             return;
         }
@@ -142,8 +136,7 @@ class CollectionDataProvider implements ProviderInterface
             return $where;
         }
 
-        foreach ($resourceFilters as $filterName) {
-            $filter = $this->getFilter($filterName);
+        foreach ($resourceFilters as $filter) {
             if ($filter instanceof FilterInterface) {
                 $where = $filter->addClause($property, $value, $operation->getClass());
             } else {
