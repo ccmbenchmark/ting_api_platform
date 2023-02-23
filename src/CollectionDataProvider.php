@@ -4,9 +4,11 @@ namespace CCMBenchmark\Ting\ApiPlatform;
 
 use ApiPlatform\Api\FilterLocatorTrait;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
+use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
 use Psr\Container\ContainerInterface;
@@ -34,7 +36,7 @@ class CollectionDataProvider implements ProviderInterface
     /**
      * @inheritdoc
      */
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): PartialPaginatorInterface
     {
         $resourceClass = $operation->getClass();
         $operationName = $operation->getName();
@@ -62,7 +64,11 @@ class CollectionDataProvider implements ProviderInterface
         $this->getOrder($operation, $request, $builder);
         $query = $repository->getQuery($builder->getStatement());
 
-        return iterator_to_array($query->query($repository->getCollection(new HydratorSingleObject())));
+        $iterator = $query->query($repository->getCollection(new HydratorSingleObject()));
+        $paginator = new Paginator($iterator);
+        //TODO : implémenter la pagination : $maxResults, $firstResult, $totalItems;
+
+        return $paginator;
     }
 
     private function getCurrentPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
