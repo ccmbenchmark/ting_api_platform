@@ -2,7 +2,7 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
-use ApiPlatform\Core\Exception\InvalidArgumentException;
+use ApiPlatform\Exception\InvalidArgumentException;
 
 class SearchFilter extends AbstractFilter implements SearchFilterInterface, FilterInterface
 {

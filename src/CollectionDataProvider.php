@@ -46,7 +46,7 @@ class CollectionDataProvider implements ProviderInterface
             return null;
         }
 
-        $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
+        $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass ?? '');
         if (null === $repository) {
             return null;
         }
@@ -80,7 +80,7 @@ class CollectionDataProvider implements ProviderInterface
         $page -= 1;
         $itemsPerPage = $request->query->getInt(
             $this->paginationOptions->getItemsPerPageParameterName(),
-            $operation->getPaginationItemsPerPage()
+            (int) $operation->getPaginationItemsPerPage()
         );
 
         $queryBuilder->offset($page * $itemsPerPage);
@@ -88,7 +88,7 @@ class CollectionDataProvider implements ProviderInterface
 
     private function getItemsPerPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
     {
-        $queryBuilder->limit($request->query->get(
+        $queryBuilder->limit((int) $request->query->get(
             $this->paginationOptions->getItemsPerPageParameterName(),
             $operation->getPaginationItemsPerPage()
         ));

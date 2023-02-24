@@ -12,17 +12,18 @@ abstract class AbstractFilter
     public function __construct(
         private RepositoryProvider $repositoryProvider,
         protected MetadataRepository $metadataRepository,
-        protected array $properties = []
+        protected array $properties = [],
     ) {
     }
 
     protected function getTypeMariaForProperty(string $property, string $resourceClass): string
     {
-        $fields = $this->getMetadataForResourceClass($resourceClass)->getFields();
-
-        foreach ($fields as $field) {
-            if ($field['fieldName'] === $property) {
-                return $field['type'];
+        $fields = $this->getMetadataForResourceClass($resourceClass)?->getFields();
+        if ($fields !== null) {
+            foreach ($fields as $field) {
+                if ($field['fieldName'] === $property) {
+                    return $field['type'];
+                }
             }
         }
 
@@ -31,11 +32,12 @@ abstract class AbstractFilter
 
     protected function getTypeForProperty(string $property, string $resourceClass): string
     {
-        $fields = $this->getMetadataForResourceClass($resourceClass)->getFields();
-
-        foreach ($fields as $field) {
-            if ($field['fieldName'] === $property) {
-                return $field['type'];
+        $fields = $this->getMetadataForResourceClass($resourceClass)?->getFields();
+        if ($fields !== null) {
+            foreach ($fields as $field) {
+                if ($field['fieldName'] === $property) {
+                    return $field['type'];
+                }
             }
         }
 
@@ -46,14 +48,13 @@ abstract class AbstractFilter
     {
         $metadata = $this->getMetadataForResourceClass($resourceClass);
 
-        return $metadata->getFields();
+        return $metadata ? $metadata->getFields() : [];
     }
 
     private function getMetadataForResourceClass(string $resourceClass): ?Metadata
     {
-        /** @var Repository $repository */
         $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
 
-        return $repository->getMetadata();
+        return $repository ? $repository->getMetadata() : null;
     }
 }

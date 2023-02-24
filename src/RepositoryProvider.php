@@ -47,6 +47,7 @@ class RepositoryProvider
         if (empty($this->repositoryName)) {
             return null;
         }
+        /** @var Repository|null $repository */
         $repository = $this->ting->get($this->repositoryName);
 
         return $repository;

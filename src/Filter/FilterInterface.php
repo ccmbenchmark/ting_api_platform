@@ -2,7 +2,7 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
-use ApiPlatform\Core\Api\FilterInterface as BaseFilterInterface;
+use ApiPlatform\Api\FilterInterface as BaseFilterInterface;
 
 interface FilterInterface extends BaseFilterInterface
 {

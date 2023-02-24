@@ -8,9 +8,9 @@ use IteratorAggregate;
 
 class Paginator implements PartialPaginatorInterface, IteratorAggregate
 {
-    public $maxResults = 0;
-    public $firstResult = 0;
-    public $totalItems = 0;
+    public float $maxResults = 0;
+    public int $firstResult = 0;
+    public float $totalItems = 0;
 
     public function __construct(
         private Traversable $iterator
@@ -37,7 +37,7 @@ class Paginator implements PartialPaginatorInterface, IteratorAggregate
 
     public function getTotalItems(): float
     {
-        return (float) ($this->totalItems ?? $this->totalItems = \count($this->paginator));
+        return (float) ($this->totalItems ?? $this->totalItems = $this->count());
     }
 
     /**
