@@ -18,6 +18,7 @@ services:
     arguments:
       - '@api_platform.ting.repository_provider'
       - '@request_stack'
+      - '@api_platform.pagination_options'
     tags:
       - { name: 'api_platform.collection_data_provider' }
 

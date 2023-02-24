@@ -4,6 +4,7 @@ namespace CCMBenchmark\Ting\ApiPlatform;
 
 use ApiPlatform\Api\FilterLocatorTrait;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\Pagination\PaginationOptions;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
@@ -25,31 +26,29 @@ use function str_replace;
 
 class CollectionDataProvider implements ProviderInterface
 {
-    const PAGE_PARAMETER_NAME_DEFAULT = 'page';
-
     public function __construct(
         private RepositoryProvider $repositoryProvider,
         private RequestStack $requestStack,
+        private PaginationOptions $paginationOptions,
     ) {
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): PartialPaginatorInterface
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PartialPaginatorInterface
     {
         $resourceClass = $operation->getClass();
         $operationName = $operation->getName();
 
         $request = $this->requestStack->getCurrentRequest();
         if (null === $request) {
-            return [];
+            return null;
         }
 
         $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
-
-        if ($repository === null) {
-            return [];
+        if (null === $repository) {
+            return null;
         }
 
         $fields = array_column($repository->getMetadata()->getFields(), 'columnName');
@@ -64,17 +63,14 @@ class CollectionDataProvider implements ProviderInterface
         $this->getOrder($operation, $request, $builder);
         $query = $repository->getQuery($builder->getStatement());
 
-        $iterator = $query->query($repository->getCollection(new HydratorSingleObject()));
-        $paginator = new Paginator($iterator);
-        //TODO : implémenter la pagination : $maxResults, $firstResult, $totalItems;
-
-        return $paginator;
+        //TODO : Implements pagination in Paginator: $maxResults, $firstResult, $totalItems;
+        return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())));
     }
 
     private function getCurrentPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
     {
         $page = $request->query->getInt(
-            $operation->getPaginationType() ?? static::PAGE_PARAMETER_NAME_DEFAULT,
+            $operation->getPaginationType() ?? $this->paginationOptions->getPaginationPageParameterName(),
             1
         );
         if ($page < 2) {
@@ -83,7 +79,7 @@ class CollectionDataProvider implements ProviderInterface
 
         $page -= 1;
         $itemsPerPage = $request->query->getInt(
-            'itemsPerPage',
+            $this->paginationOptions->getItemsPerPageParameterName(),
             $operation->getPaginationItemsPerPage()
         );
 
@@ -93,7 +89,7 @@ class CollectionDataProvider implements ProviderInterface
     private function getItemsPerPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
     {
         $queryBuilder->limit($request->query->get(
-            'itemsPerPage',
+            $this->paginationOptions->getItemsPerPageParameterName(),
             $operation->getPaginationItemsPerPage()
         ));
     }

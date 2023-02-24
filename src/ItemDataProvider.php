@@ -18,13 +18,13 @@ class ItemDataProvider implements ProviderInterface
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?object
     {
         $request = $this->requestStack->getCurrentRequest();
         if (null === $request) {
-            return [];
+            return null;
         }
 
         /** @var Repository $repository */

@@ -9,27 +9,11 @@ use CCMBenchmark\Ting\Repository\Repository;
 
 abstract class AbstractFilter
 {
-    /**
-     * @var RepositoryProvider
-     */
-    private $repositoryProvider;
-    /**
-     * @var MetadataRepository
-     */
-    protected $metadataRepository;
-    /**
-     * @var array
-     */
-    protected $properties;
-
     public function __construct(
-        RepositoryProvider $repositoryProvider,
-        MetadataRepository $metadataRepository,
-        array $properties = []
+        private RepositoryProvider $repositoryProvider,
+        protected MetadataRepository $metadataRepository,
+        protected array $properties = []
     ) {
-        $this->repositoryProvider = $repositoryProvider;
-        $this->metadataRepository = $metadataRepository;
-        $this->properties = $properties;
     }
 
     protected function getTypeMariaForProperty(string $property, string $resourceClass): string
@@ -65,7 +49,7 @@ abstract class AbstractFilter
         return $metadata->getFields();
     }
 
-    private function getMetadataForResourceClass(string $resourceClass): Metadata
+    private function getMetadataForResourceClass(string $resourceClass): ?Metadata
     {
         /** @var Repository $repository */
         $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
