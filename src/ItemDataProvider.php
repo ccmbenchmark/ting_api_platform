@@ -13,6 +13,7 @@ class ItemDataProvider implements ProviderInterface
     public function __construct(
         private RepositoryProvider $repositoryProvider,
         private RequestStack $requestStack,
+        private string $primaryKeyIdentifier = 'id',
     ) {
     }
 
@@ -29,7 +30,7 @@ class ItemDataProvider implements ProviderInterface
         /** @var Repository $repository */
         $repository = $this->repositoryProvider->getRepositoryFromResource($operation->getClass());
 
-        return $repository->get($request->get('uuid'));
+        return $repository->getBy([$this->primaryKeyIdentifier => $request->get($this->primaryKeyIdentifier)]);
     }
 }
 
