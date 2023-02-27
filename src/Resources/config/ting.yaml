@@ -13,22 +13,42 @@ parameters:
     order_parameter_name: '%api_platform.collection.order_parameter_name%'
 
 services:
-  api_platform.ting.collection_data_provider:
+  api_platform.ting.metadata.resource.metadata_collection_factory:
+    class: 'CCMBenchmark\Ting\ApiPlatform\Metadata\Resource\TingResourceMetadataCollectionFactory'
+    decorates: 'api_platform.metadata.resource.metadata_collection_factory'
+    decoration_priority: 40
+    arguments:
+        - '@api_platform.ting.repository_provider'
+        - '@.inner'
+  api_platform.ting.state.collection_provider:
     class: 'CCMBenchmark\Ting\ApiPlatform\CollectionDataProvider'
     arguments:
       - '@api_platform.ting.repository_provider'
       - '@request_stack'
       - '@api_platform.pagination_options'
     tags:
-      - { name: 'api_platform.collection_data_provider' }
+      - name: 'api_platform.state_provider'
+        priority: -100
+        key: 'CCMBenchmark\Ting\ApiPlatform\CollectionDataProvider'
+      - name: 'api_platform.state_provider'
+        priority: -100
+        key: 'api_platform.ting.state.collection_provider'
+  CCMBenchmark\Ting\ApiPlatform\CollectionDataProvider:
+    alias: 'api_platform.ting.state.collection_provider'
 
-  api_platform.ting.item_data_provider:
+  api_platform.ting.state.item_provider:
     class: 'CCMBenchmark\Ting\ApiPlatform\ItemDataProvider'
     arguments:
       - '@api_platform.ting.repository_provider'
-      - '@request_stack'
     tags:
-      - { name: 'api_platform.item_data_provider' }
+      - name: 'api_platform.state_provider'
+        priority: -100
+        key: 'CCMBenchmark\Ting\ApiPlatform\ItemDataProvider'
+      - name: 'api_platform.state_provider'
+        priority: -100
+        key: 'api_platform.ting.item_data_provider'
+  CCMBenchmark\Ting\ApiPlatform\ItemDataProvider:
+    alias: 'api_platform.ting.state.item_provider'
 
   api_platform.ting.listener.view.write:
     class: 'CCMBenchmark\Ting\ApiPlatform\WriteListener'
