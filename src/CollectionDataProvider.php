@@ -2,7 +2,6 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Api\FilterLocatorTrait;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\Pagination\PaginationOptions;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
@@ -12,12 +11,9 @@ use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-
-use function array_column;
-use function dump;
+use function array_map;
 use function implode;
 use function is_array;
 use function is_string;
@@ -51,7 +47,21 @@ class CollectionDataProvider implements ProviderInterface
             return null;
         }
 
-        $fields = array_column($repository->getMetadata()->getFields(), 'columnName');
+        $fields = array_map(
+            /**
+             * @param array{columnName: string, queryModifier?: array{read: callable(string): string}} $field
+             */
+            static function (array $field): string {
+                $columnName = $field['columnName'];
+
+                if (isset($field['queryModifier'])) {
+                    $columnName = $field['queryModifier']['read']($columnName) . ' AS ' . $columnName;
+                }
+
+                return $columnName;
+            },
+            $repository->getMetadata()->getFields()
+        );
 
         /** @var SelectInterface $builder */
         $builder = $repository->getQueryBuilder(Repository::QUERY_SELECT);
