@@ -57,12 +57,11 @@ class CollectionDataProvider implements ProviderInterface
         $builder = $repository->getQueryBuilder(Repository::QUERY_SELECT);
         $builder->cols($fields);
         $builder->from($repository->getMetadata()->getTable());
-        $this->getWhere($operation, $request, $repository, $builder);
+        $this->getWhere($operation, $context['filters'], $repository, $builder);
         $this->getCurrentPage($operation, $request, $builder);
         $this->getItemsPerPage($operation, $request, $builder);
         $this->getOrder($operation, $request, $builder);
         $query = $repository->getQuery($builder->getStatement());
-
         //TODO : Implements pagination in Paginator: $maxResults, $firstResult, $totalItems;
         return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())));
     }
@@ -110,14 +109,17 @@ class CollectionDataProvider implements ProviderInterface
         }
     }
 
-    private function getWhere(Operation $operation, Request $request, Repository $repository, SelectInterface $queryBuilder): void
+    /**
+     * @param array<string, string> $filters
+     */
+    private function getWhere(Operation $operation, array $filters, Repository $repository, SelectInterface $queryBuilder): void
     {
         $properties = $repository->getMetadata()->getFields();
 
         $where = '';
         foreach ($properties as $property) {
-            if ($request->query->has($property['fieldName'])) {
-                $value = $request->query->get($property['fieldName']);
+            if (isset($filters[$property['fieldName']])) {
+                $value = $filters[$property['fieldName']];
                 $where = $this->getClauseFilter($operation, $property['columnName'], $value);
             }
         }

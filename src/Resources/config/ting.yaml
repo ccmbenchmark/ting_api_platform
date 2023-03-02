@@ -59,6 +59,11 @@ services:
   api_platform.ting.repository_provider:
     class: 'CCMBenchmark\Ting\ApiPlatform\RepositoryProvider'
     arguments: ['@ting', '@ting.metadatarepository']
+  CCMBenchmark\Ting\ApiPlatform\RepositoryProvider:
+    alias: 'api_platform.ting.repository_provider'
+
+  CCMBenchmark\Ting\MetadataRepository:
+    alias: 'ting.metadatarepository'
 
   api_platform.ting.search_filter:
     public: false
