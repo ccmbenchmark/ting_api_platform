@@ -35,7 +35,7 @@ final class TingResourceMetadataCollectionFactory implements ResourceMetadataCol
                 foreach ($operations as $operationName => $operation) {
                     assert($operation instanceof Operation);
 
-                    $entityClass = $operation->getClass();
+                    $entityClass = $operation->getClass() ?? '';
 
                     if (!$this->repositoryProvider->getRepositoryFromResource($entityClass) instanceof Repository) {
                         continue;
@@ -51,7 +51,7 @@ final class TingResourceMetadataCollectionFactory implements ResourceMetadataCol
 
             if ($graphQlOperations) {
                 foreach ($graphQlOperations as $operationName => $graphQlOperation) {
-                    $entityClass = $graphQlOperation->getClass();
+                    $entityClass = $graphQlOperation->getClass() ?? '';
 
                     if (!$this->repositoryProvider->getRepositoryFromResource($entityClass) instanceof Repository) {
                         continue;

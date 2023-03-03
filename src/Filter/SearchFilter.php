@@ -31,7 +31,7 @@ class SearchFilter extends AbstractFilter implements SearchFilterInterface, Filt
         return $description;
     }
 
-    public function addClause(string $property, $value, string $resourceClass): string
+    public function addClause(string $property, $value): string
     {
         $where = '';
         if (array_key_exists($property, $this->properties)) {

@@ -8,10 +8,8 @@ use ApiPlatform\State\Pagination\PaginationOptions;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
-use CCMBenchmark\Ting\ApiPlatform\Filter\BooleanFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
-use CCMBenchmark\Ting\ApiPlatform\Filter\NumericFilter;
-use CCMBenchmark\Ting\ApiPlatform\Filter\SearchFilter;
+use CCMBenchmark\Ting\ApiPlatform\Filter\OrderFilter;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
@@ -22,15 +20,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 
 use function array_column;
-use function dump;
-use function implode;
-use function is_array;
-use function is_string;
-use function sprintf;
-use function str_replace;
 
 class CollectionDataProvider implements ProviderInterface
 {
+    /** @var array<FilterInterface> */
+    private array $filterServices = [];
+
+    private ?OrderFilter $orderService = null;
+
     public function __construct(
         private RepositoryProvider $repositoryProvider,
         private RequestStack $requestStack,
@@ -44,6 +41,16 @@ class CollectionDataProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PartialPaginatorInterface
     {
+        if ($operation->getFilters() !== null) {
+            foreach ($operation->getFilters() as $name) {
+                $filter = $this->filterLocator->get($name);
+                if ($filter instanceof OrderFilter) {
+                    $this->orderService = $filter;
+                    continue;
+                }
+                $this->filterServices[] = $this->filterLocator->get($name);
+            }
+        }
         $resourceClass = $operation->getClass();
         $operationName = $operation->getName();
 
@@ -65,7 +72,7 @@ class CollectionDataProvider implements ProviderInterface
         $this->getWhere($operation, $context['filters'], $repository, $builder);
         $this->getCurrentPage($operation, $request, $builder);
         $this->getItemsPerPage($operation, $request, $builder);
-        $this->getOrder($operation, $request, $builder);
+        $this->getOrder($operation, $context['filters'], $builder);
         $query = $repository->getQuery($builder->getStatement());
         //TODO : Implements pagination in Paginator: $maxResults, $firstResult, $totalItems;
         return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())));
@@ -98,19 +105,23 @@ class CollectionDataProvider implements ProviderInterface
         ));
     }
 
-    private function getOrder(Operation $operation, Request $request, SelectInterface $queryBuilder): void
+    /**
+     * @param array<string, string> $filters
+     */
+    private function getOrder(Operation $operation, array $filters, SelectInterface $queryBuilder): void
     {
-        $properties = $operation->getOrder();
-        if ($properties === null) {
+        if ($this->orderService === null || !isset($filters[$this->orderService->orderParameterName])) {
             return;
         }
 
-        $suffix = [];
-        foreach ($properties as $property => $order) {
-            $suffix[] = "$property $order";
-        }
-        if ($suffix !== []) {
-            $queryBuilder->orderBy($suffix);
+        /** @var array<string, string> $orderFilters */
+        $orderFilters = $filters[$this->orderService->orderParameterName];
+
+        foreach ($orderFilters as $property => $order) {
+            $clause = $this->orderService->addClause($property, $order);
+            if ($clause !== '') {
+                $queryBuilder->orderBy([$clause]);
+            }
         }
     }
 
@@ -119,18 +130,13 @@ class CollectionDataProvider implements ProviderInterface
      */
     private function getWhere(Operation $operation, array $filters, Repository $repository, SelectInterface $queryBuilder): void
     {
-        $filterServices = [];
-        foreach ($operation->getFilters() as $name) {
-            $filterServices[] = $this->filterLocator->get($name);
-        }
-
         $properties = $repository->getMetadata()->getFields();
 
         $where = [];
         foreach ($properties as $property) {
             if (isset($filters[$property['fieldName']])) {
                 $value = $filters[$property['fieldName']];
-                $clause = $this->getClauseFilter($operation, $filterServices, $property['fieldName'], $property['columnName'], $value);
+                $clause = $this->getClauseFilter($operation, $property['fieldName'], $property['columnName'], $value);
                 if ($clause !== '') {
                     $queryBuilder->where($clause);
                 }
@@ -139,13 +145,16 @@ class CollectionDataProvider implements ProviderInterface
     }
 
     /**
-     * @param array<FilterInterface> $filterServices
+     * @param mixed $value
      */
-    private function getClauseFilter(Operation $operation, array $filterServices, string $propertyname, string $columnName, $value): string
+    private function getClauseFilter(Operation $operation, string $propertyname, string $columnName, $value): string
     {
-        foreach ($filterServices as $service) {
+        if ($operation->getClass() === null) {
+            return '';
+        }
+        foreach ($this->filterServices as $service) {
             if (isset($service->getDescription($operation->getClass())[$propertyname])) {
-                return $service->addClause($columnName, $value, $operation->getClass());
+                return $service->addClause($columnName, $value);
             }
         }
 

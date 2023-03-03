@@ -7,10 +7,7 @@ use ApiPlatform\Api\FilterInterface as BaseFilterInterface;
 interface FilterInterface extends BaseFilterInterface
 {
     /**
-     * @param string $property
-     * @param mixed  $value
-     * @param string $resourceClass
-     * @return string
+     * @param mixed $value
      */
-    public function addClause(string $property, $value, string $resourceClass): string;
+    public function addClause(string $property, $value): string;
 }

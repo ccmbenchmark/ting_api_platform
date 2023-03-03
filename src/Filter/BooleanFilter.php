@@ -4,7 +4,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
 
-class BooleanFilter extends AbstractFilter implements SearchFilterInterface, FilterInterface
+class BooleanFilter extends AbstractFilter implements FilterInterface
 {
     public function getDescription(string $resourceClass): array
     {
@@ -25,7 +25,7 @@ class BooleanFilter extends AbstractFilter implements SearchFilterInterface, Fil
     /**
      * @param mixed $value
      */
-    public function addClause(string $property, $value, string $resourceClass): string
+    public function addClause(string $property, $value): string
     {
         return sprintf('%s = %s', $property, in_array($value, ['true', true], true) ? 1 : 0);
     }

@@ -4,7 +4,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
 
-class NumericFilter extends AbstractFilter implements SearchFilterInterface, FilterInterface
+class NumericFilter extends AbstractFilter implements FilterInterface
 {
     public function getDescription(string $resourceClass): array
     {
@@ -27,7 +27,7 @@ class NumericFilter extends AbstractFilter implements SearchFilterInterface, Fil
     /**
      * @param mixed $value
      */
-    public function addClause(string $property, $value, string $resourceClass): string
+    public function addClause(string $property, $value): string
     {
         return $this->andWhere($property, $value);
     }
