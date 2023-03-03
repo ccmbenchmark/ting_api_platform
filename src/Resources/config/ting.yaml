@@ -65,24 +65,3 @@ services:
 
   CCMBenchmark\Ting\MetadataRepository:
     alias: 'ting.metadatarepository'
-
-  api_platform.ting.search_filter:
-    public: false
-    class: 'CCMBenchmark\Ting\ApiPlatform\Filter\SearchFilter'
-    arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
-    tags:
-      - 'api_platform.filter'
-
-  api_platform.ting.numeric_filter:
-    public: false
-    class: 'CCMBenchmark\Ting\ApiPlatform\Filter\NumericFilter'
-    arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
-    tags:
-      - 'api_platform.filter'
-
-  api_platform.ting.boolean_filter:
-    public: false
-    class: 'CCMBenchmark\Ting\ApiPlatform\Filter\BooleanFilter'
-    arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
-    tags:
-      - 'api_platform.filter'
