@@ -26,6 +26,7 @@ services:
       - '@api_platform.ting.repository_provider'
       - '@request_stack'
       - '@api_platform.pagination_options'
+      - '@api_platform.filter_locator'
     tags:
       - name: 'api_platform.state_provider'
         priority: -100
@@ -70,4 +71,18 @@ services:
     class: 'CCMBenchmark\Ting\ApiPlatform\Filter\SearchFilter'
     arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
     tags:
-      - { name: 'api_platform.ting.search_filter' }
+      - 'api_platform.filter'
+
+  api_platform.ting.numeric_filter:
+    public: false
+    class: 'CCMBenchmark\Ting\ApiPlatform\Filter\NumericFilter'
+    arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
+    tags:
+      - 'api_platform.filter'
+
+  api_platform.ting.boolean_filter:
+    public: false
+    class: 'CCMBenchmark\Ting\ApiPlatform\Filter\BooleanFilter'
+    arguments: ['@api_platform.ting.repository_provider', '@ting.metadatarepository']
+    tags:
+      - 'api_platform.filter'

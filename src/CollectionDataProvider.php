@@ -8,13 +8,18 @@ use ApiPlatform\State\Pagination\PaginationOptions;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
+use CCMBenchmark\Ting\ApiPlatform\Filter\BooleanFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
+use CCMBenchmark\Ting\ApiPlatform\Filter\NumericFilter;
+use CCMBenchmark\Ting\ApiPlatform\Filter\SearchFilter;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 
 use function array_column;
 use function dump;
@@ -30,6 +35,7 @@ class CollectionDataProvider implements ProviderInterface
         private RepositoryProvider $repositoryProvider,
         private RequestStack $requestStack,
         private PaginationOptions $paginationOptions,
+        private ServiceLocator $filterLocator,
     ) {
     }
 
@@ -52,7 +58,6 @@ class CollectionDataProvider implements ProviderInterface
         }
 
         $fields = array_column($repository->getMetadata()->getFields(), 'columnName');
-
         /** @var SelectInterface $builder */
         $builder = $repository->getQueryBuilder(Repository::QUERY_SELECT);
         $builder->cols($fields);
@@ -114,54 +119,37 @@ class CollectionDataProvider implements ProviderInterface
      */
     private function getWhere(Operation $operation, array $filters, Repository $repository, SelectInterface $queryBuilder): void
     {
+        $filterServices = [];
+        foreach ($operation->getFilters() as $name) {
+            $filterServices[] = $this->filterLocator->get($name);
+        }
+
         $properties = $repository->getMetadata()->getFields();
 
-        $where = '';
+        $where = [];
         foreach ($properties as $property) {
             if (isset($filters[$property['fieldName']])) {
                 $value = $filters[$property['fieldName']];
-                $where = $this->getClauseFilter($operation, $property['columnName'], $value);
-            }
-        }
-        if ($where != '') {
-            $where = str_replace('<<', "'", $where);
-            $where = str_replace('>>', "'", $where);
-
-            $queryBuilder->where($where);
-        }
-    }
-
-    private function getClauseFilter(Operation $operation, string $property, $value): string
-    {
-        $resourceFilters = $operation->getFilters();
-
-        $where = '';
-        if (empty($resourceFilters)) {
-            return $where;
-        }
-
-        foreach ($resourceFilters as $filter) {
-            if ($filter instanceof FilterInterface) {
-                $where = $filter->addClause($property, $value, $operation->getClass());
-            } else {
-                if (is_array($value)) {
-                    $where = sprintf('%s in (%s)', $property, '<<' . implode('>>,<<', $value).'>>');
-                } else {
-                    $where = "$property = " . $this->cast($value);
+                $clause = $this->getClauseFilter($operation, $filterServices, $property['fieldName'], $property['columnName'], $value);
+                if ($clause !== '') {
+                    $queryBuilder->where($clause);
                 }
             }
         }
-
-        return $where;
     }
 
-    private function cast($value): string
+    /**
+     * @param array<FilterInterface> $filterServices
+     */
+    private function getClauseFilter(Operation $operation, array $filterServices, string $propertyname, string $columnName, $value): string
     {
-        if (is_string($value)) {
-            return "<<$value>>";
+        foreach ($filterServices as $service) {
+            if (isset($service->getDescription($operation->getClass())[$propertyname])) {
+                return $service->addClause($columnName, $value, $operation->getClass());
+            }
         }
 
-        return $value;
+        return '';
     }
 }
 
