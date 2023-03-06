@@ -23,11 +23,6 @@ use function array_column;
 
 class CollectionDataProvider implements ProviderInterface
 {
-    /** @var array<FilterInterface> */
-    private array $filterServices = [];
-
-    private ?OrderFilter $orderService = null;
-
     public function __construct(
         private RepositoryProvider $repositoryProvider,
         private RequestStack $requestStack,
@@ -41,17 +36,7 @@ class CollectionDataProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PartialPaginatorInterface
     {
-        if ($operation->getFilters() !== null) {
-            foreach ($operation->getFilters() as $name) {
-                $filter = $this->filterLocator->get($name);
-                if ($filter instanceof OrderFilter) {
-                    $this->orderService = $filter;
-                    continue;
-                }
-                $this->filterServices[] = $this->filterLocator->get($name);
-            }
-        }
-        $resourceClass = $operation->getClass();
+        $resourceClass = $operation->getClass() ?? '';
         $operationName = $operation->getName();
 
         $request = $this->requestStack->getCurrentRequest();
@@ -59,7 +44,7 @@ class CollectionDataProvider implements ProviderInterface
             return null;
         }
 
-        $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass ?? '');
+        $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
         if (null === $repository) {
             return null;
         }
@@ -69,10 +54,10 @@ class CollectionDataProvider implements ProviderInterface
         $builder = $repository->getQueryBuilder(Repository::QUERY_SELECT);
         $builder->cols($fields);
         $builder->from($repository->getMetadata()->getTable());
-        $this->getWhere($operation, $context['filters'], $repository, $builder);
+        $this->applyFilters($builder, $resourceClass, $operation, $context);
         $this->getCurrentPage($operation, $request, $builder);
         $this->getItemsPerPage($operation, $request, $builder);
-        $this->getOrder($operation, $context['filters'], $builder);
+
         $query = $repository->getQuery($builder->getStatement());
         //TODO : Implements pagination in Paginator: $maxResults, $firstResult, $totalItems;
         return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())));
@@ -106,59 +91,18 @@ class CollectionDataProvider implements ProviderInterface
     }
 
     /**
-     * @param array<string, string> $filters
+     * @param array<string, array<string, array|string>> $context
      */
-    private function getOrder(Operation $operation, array $filters, SelectInterface $queryBuilder): void
+    private function applyFilters(SelectInterface $queryBuilder, string $resourceClass, Operation $operation, array $context): void
     {
-        if ($this->orderService === null || !isset($filters[$this->orderService->orderParameterName])) {
-            return;
-        }
-
-        /** @var array<string, string> $orderFilters */
-        $orderFilters = $filters[$this->orderService->orderParameterName];
-
-        foreach ($orderFilters as $property => $order) {
-            $clause = $this->orderService->addClause($property, $order);
-            if ($clause !== '') {
-                $queryBuilder->orderBy([$clause]);
-            }
-        }
-    }
-
-    /**
-     * @param array<string, string> $filters
-     */
-    private function getWhere(Operation $operation, array $filters, Repository $repository, SelectInterface $queryBuilder): void
-    {
-        $properties = $repository->getMetadata()->getFields();
-
-        $where = [];
-        foreach ($properties as $property) {
-            if (isset($filters[$property['fieldName']])) {
-                $value = $filters[$property['fieldName']];
-                $clause = $this->getClauseFilter($operation, $property['fieldName'], $property['columnName'], $value);
-                if ($clause !== '') {
-                    $queryBuilder->where($clause);
+        if ($operation->getFilters() !== null) {
+            foreach ($operation->getFilters() as $name) {
+                $filter = $this->filterLocator->get($name);
+                if ($filter instanceof FilterInterface) {
+                    $filter->apply($queryBuilder, $resourceClass, $operation, $context);
                 }
             }
         }
-    }
-
-    /**
-     * @param mixed $value
-     */
-    private function getClauseFilter(Operation $operation, string $propertyname, string $columnName, $value): string
-    {
-        if ($operation->getClass() === null) {
-            return '';
-        }
-        foreach ($this->filterServices as $service) {
-            if (isset($service->getDescription($operation->getClass())[$propertyname])) {
-                return $service->addClause($columnName, $value);
-            }
-        }
-
-        return '';
     }
 }
 

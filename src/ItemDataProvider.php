@@ -24,7 +24,7 @@ class ItemDataProvider implements ProviderInterface
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?object
     {
         /** @var Repository $repository */
-        $repository = $this->repositoryProvider->getRepositoryFromResource($operation->getClass());
+        $repository = $this->repositoryProvider->getRepositoryFromResource($operation->getClass() ?? '');
 
         $criteria = [];
         foreach($uriVariables as $name => $variable) {

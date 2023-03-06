@@ -3,8 +3,11 @@
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Operation;
+use Aura\SqlQuery\Common\SelectInterface;
+use CCMBenchmark\Ting\Repository\Repository;
 
-class SearchFilter extends AbstractFilter implements SearchFilterInterface, FilterInterface
+final class SearchFilter extends AbstractFilter implements SearchFilterInterface, FilterInterface
 {
     public function getDescription(string $resourceClass): array
     {
@@ -31,36 +34,40 @@ class SearchFilter extends AbstractFilter implements SearchFilterInterface, Filt
         return $description;
     }
 
-    public function addClause(string $property, $value): string
+    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
     {
-        $where = '';
-        if (array_key_exists($property, $this->properties)) {
-            $strategy = $this->properties[$property];
-            if ($strategy === null) {
-                $strategy = self::STRATEGY_EXACT;
+        $this->getPropertiesForFilter(
+            $resourceClass,
+            $context,
+            $this->getDescription($resourceClass),
+            function($property, $value) use ($queryBuilder) {
+                $clause = $this->addClause($property['columnName'], $value);
+                if ($clause !== '') {
+                    $queryBuilder->where($clause);
+                }
             }
-
-            $where = $this->andWhereByStrategy($property, $value, $strategy);
-        }
-
-        return $where;
+        );
     }
 
-    /**
-     * @param string $property
-     * @param mixed  $value
-     * @param string $strategy
-     * @return string
-     */
-    public function andWhereByStrategy(string $property, $value, string $strategy = self::STRATEGY_EXACT): string
+    private function addClause(string $property, mixed $value): string
+    {
+        return $this->andWhereByStrategy($property, $value, $this->properties[$property] ?? self::STRATEGY_EXACT);
+    }
+
+    private function andWhereByStrategy(string $property, mixed $value, string $strategy = self::STRATEGY_EXACT): string
     {
         $operator = 'like';
         $caseSensitive = true;
 
-        if (0 === strpos($strategy, 'i')) {
+        if (strpos($strategy, 'i') === 0) {
             $strategy = substr($strategy, 1);
             $operator = 'ilike';
             $caseSensitive = false;
+        }
+
+        if (is_array($value)) {
+            //TODO : supports others strategies for array
+            $strategy = self::STRATEGY_EXACT;
         }
 
         $where = '';
@@ -68,13 +75,13 @@ class SearchFilter extends AbstractFilter implements SearchFilterInterface, Filt
             case self::STRATEGY_EXACT:
                 if (!$caseSensitive) {
                     $property = sprintf('lower(%s)', $property);
-                    $value    = sprintf('lower(%s)', $value);
+                    $value = sprintf('lower(%s)', $value);
                 }
 
                 if (is_array($value)) {
                     $where = sprintf('%s in (%s)', $property, '"' . implode('","', $value) . '"');
                 } else {
-                    $where = sprintf('%s = "'.$value.'"', $property);
+                    $where = $value === null ? sprintf('%s IS NULL', $property) : sprintf('%s = "' . $value . '"', $property);
                 }
                 break;
             case self::STRATEGY_PARTIAL:

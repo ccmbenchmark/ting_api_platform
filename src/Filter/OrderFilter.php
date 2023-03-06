@@ -3,12 +3,15 @@
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Operation;
+use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use CCMBenchmark\Ting\MetadataRepository;
+use CCMBenchmark\Ting\Repository\Repository;
 
 class OrderFilter extends AbstractFilter implements OrderFilterInterface, FilterInterface
 {
-    public readonly string $orderParameterName;
+    private readonly string $orderParameterName;
 
     public function __construct(
         RepositoryProvider $repositoryProvider,
@@ -29,7 +32,7 @@ class OrderFilter extends AbstractFilter implements OrderFilterInterface, Filter
             }, $properties);
         }
 
-        parent::__construct($repositoryProvider, $metadataRepository, $properties, $orderParameterName);
+        parent::__construct($repositoryProvider, $metadataRepository, $properties);
 
         $this->orderParameterName = $orderParameterName;
     }
@@ -56,15 +59,20 @@ class OrderFilter extends AbstractFilter implements OrderFilterInterface, Filter
         return $description;
     }
 
-    /**
-     * @param mixed $value
-     */
-    public function addClause(string $property, $value): string
+    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
     {
-        if (!in_array(strtoupper($value), [self::DIRECTION_ASC, self::DIRECTION_DESC])) {
-            return '';
+        if (!isset($context['filters'][$this->orderParameterName])) {
+            return;
         }
 
-        return sprintf('%s %s', $property, $value);
+        /** @var array<string, array> $context['filters'] */
+        $orderFilters = $context['filters'][$this->orderParameterName];
+        foreach ($orderFilters as $property => $order) {
+            if (!in_array(strtoupper($order), [self::DIRECTION_ASC, self::DIRECTION_DESC])) {
+                continue;
+            }
+
+            $queryBuilder->orderBy([sprintf('%s %s', $property, $order)]);
+        }
     }
 }

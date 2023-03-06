@@ -3,8 +3,11 @@
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Operation;
+use Aura\SqlQuery\Common\SelectInterface;
+use CCMBenchmark\Ting\Repository\Repository;
 
-class NumericFilter extends AbstractFilter implements FilterInterface
+final class NumericFilter extends AbstractFilter implements FilterInterface
 {
     public function getDescription(string $resourceClass): array
     {
@@ -24,18 +27,23 @@ class NumericFilter extends AbstractFilter implements FilterInterface
         return $description;
     }
 
-    /**
-     * @param mixed $value
-     */
-    public function addClause(string $property, $value): string
+    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
     {
-        return $this->andWhere($property, $value);
+        $this->getPropertiesForFilter(
+            $resourceClass,
+            $context,
+            $this->getDescription($resourceClass),
+            function($property, $value) use ($queryBuilder) {
+                $clause = $this->addClause($property['columnName'], $value);
+                $queryBuilder->where($clause);
+            }
+        );
     }
 
     /**
      * @param mixed $value
      */
-    public function andWhere(string $property, $value): string
+    private function addClause(string $property, $value): string
     {
         if (is_array($value)) {
             return sprintf('%s in (%s)', $property, implode(',', $value));

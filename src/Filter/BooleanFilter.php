@@ -3,8 +3,11 @@
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Operation;
+use Aura\SqlQuery\Common\SelectInterface;
+use CCMBenchmark\Ting\Repository\Repository;
 
-class BooleanFilter extends AbstractFilter implements FilterInterface
+final class BooleanFilter extends AbstractFilter implements FilterInterface
 {
     public function getDescription(string $resourceClass): array
     {
@@ -22,10 +25,23 @@ class BooleanFilter extends AbstractFilter implements FilterInterface
         return $description;
     }
 
+    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
+    {
+        $this->getPropertiesForFilter(
+            $resourceClass,
+            $context,
+            $this->getDescription($resourceClass),
+            function($property, $value) use ($queryBuilder) {
+                $clause = $this->addClause($property['columnName'], $value);
+                $queryBuilder->where($clause);
+            }
+        );
+    }
+
     /**
      * @param mixed $value
      */
-    public function addClause(string $property, $value): string
+    private function addClause(string $property, $value): string
     {
         return sprintf('%s = %s', $property, in_array($value, ['true', true], true) ? 1 : 0);
     }

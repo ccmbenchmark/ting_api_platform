@@ -2,6 +2,8 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
+use ApiPlatform\Metadata\Operation;
+use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use CCMBenchmark\Ting\MetadataRepository;
 use CCMBenchmark\Ting\Repository\Metadata;
@@ -49,6 +51,27 @@ abstract class AbstractFilter
         $metadata = $this->getMetadataForResourceClass($resourceClass);
 
         return $metadata ? $metadata->getFields() : [];
+    }
+
+    protected function getPropertiesForFilter(
+        string $resourceClass,
+        array $context,
+        array $description,
+        callable $callback,
+    ): void {
+        if (!isset($context['filters'])) {
+            return;
+        }
+        $filters = $context['filters'];
+        $properties = $this->getFieldNamesForResource($resourceClass);
+        foreach ($properties as $property) {
+            if (isset($filters[$property['fieldName']])) {
+                $value = $filters[$property['fieldName']];
+                if (isset($description[$property['fieldName']])) {
+                    $callback($property, $value);
+                }
+            }
+        }
     }
 
     private function getMetadataForResourceClass(string $resourceClass): ?Metadata

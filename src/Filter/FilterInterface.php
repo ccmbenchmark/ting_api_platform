@@ -3,11 +3,15 @@
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Api\FilterInterface as BaseFilterInterface;
+use Aura\SqlQuery\Common\SelectInterface;
+use CCMBenchmark\Ting\Query\QueryInterface;
+use CCMBenchmark\Ting\Repository\Repository;
+use ApiPlatform\Metadata\Operation;
 
 interface FilterInterface extends BaseFilterInterface
 {
     /**
-     * @param mixed $value
+     * @param array<string, array<string, array|string>> $context
      */
-    public function addClause(string $property, $value): string;
+    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void;
 }
