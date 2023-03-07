@@ -2,19 +2,25 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform\Pagination;
 
+use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use Traversable;
 use IteratorAggregate;
 
-class Paginator implements PartialPaginatorInterface, IteratorAggregate
+final class Paginator implements PartialPaginatorInterface, IteratorAggregate
 {
     public float $maxResults = 0;
     public int $firstResult = 0;
-    public float $totalItems = 0;
 
     public function __construct(
-        private Traversable $iterator
+        private Traversable $iterator,
+        PaginationConfig $paginationConfig,
+        Operation $operation,
     ) {
+        if ($paginationConfig->getPaginationEnabled() === true) {
+            $this->maxResults = $paginationConfig->getItemsPerPage();
+            $this->firstResult = $paginationConfig->getByClass($operation->getClass() ?? '')['offset'];
+        }
     }
 
     public function getCurrentPage(): float
@@ -26,23 +32,6 @@ class Paginator implements PartialPaginatorInterface, IteratorAggregate
         return floor($this->firstResult / $this->maxResults) + 1.;
     }
 
-    public function getLastPage(): float
-    {
-        if (0 >= $this->maxResults) {
-            return 1.;
-        }
-
-        return ceil($this->getTotalItems() / $this->maxResults) ?: 1.;
-    }
-
-    public function getTotalItems(): float
-    {
-        return (float) ($this->totalItems ?? $this->totalItems = $this->count());
-    }
-
-    /**
-     * Gets the number of items by page.
-     */
     public function getItemsPerPage(): float
     {
         return (float) $this->maxResults;

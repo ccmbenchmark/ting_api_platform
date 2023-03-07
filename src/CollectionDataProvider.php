@@ -10,6 +10,7 @@ use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
 use CCMBenchmark\Ting\ApiPlatform\Filter\OrderFilter;
+use CCMBenchmark\Ting\ApiPlatform\Pagination\PaginationConfig;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
@@ -44,6 +45,8 @@ class CollectionDataProvider implements ProviderInterface
             return null;
         }
 
+        $paginationConfig = new PaginationConfig($this->paginationOptions, $request, $context, $resourceClass);
+
         $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
         if (null === $repository) {
             return null;
@@ -55,39 +58,21 @@ class CollectionDataProvider implements ProviderInterface
         $builder->cols($fields);
         $builder->from($repository->getMetadata()->getTable());
         $this->applyFilters($builder, $resourceClass, $operation, $context);
-        $this->getCurrentPage($operation, $request, $builder);
-        $this->getItemsPerPage($operation, $request, $builder);
-
+        $this->applyPagination($builder, $resourceClass, $paginationConfig);
         $query = $repository->getQuery($builder->getStatement());
-        //TODO : Implements pagination in Paginator: $maxResults, $firstResult, $totalItems;
-        return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())));
+
+        return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())), $paginationConfig, $operation);
     }
 
-    private function getCurrentPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
+    private function applyPagination(SelectInterface $queryBuilder, string $resourceClass, PaginationConfig $paginationConfig): void
     {
-        $page = $request->query->getInt(
-            $operation->getPaginationType() ?? $this->paginationOptions->getPaginationPageParameterName(),
-            1
-        );
-        if ($page < 2) {
+        if ($paginationConfig->getPaginationEnabled() === false) {
             return;
         }
 
-        $page -= 1;
-        $itemsPerPage = $request->query->getInt(
-            $this->paginationOptions->getItemsPerPageParameterName(),
-            (int) $operation->getPaginationItemsPerPage()
-        );
-
-        $queryBuilder->offset($page * $itemsPerPage);
-    }
-
-    private function getItemsPerPage(Operation $operation, Request $request, SelectInterface $queryBuilder): void
-    {
-        $queryBuilder->limit((int) $request->query->get(
-            $this->paginationOptions->getItemsPerPageParameterName(),
-            $operation->getPaginationItemsPerPage()
-        ));
+        $config = $paginationConfig->getByClass($resourceClass);
+        $queryBuilder->limit($config['limit']);
+        $queryBuilder->offset($config['offset']);
     }
 
     /**
