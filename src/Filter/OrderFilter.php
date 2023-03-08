@@ -2,12 +2,10 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
-use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
 use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use CCMBenchmark\Ting\MetadataRepository;
-use CCMBenchmark\Ting\Repository\Repository;
 
 class OrderFilter extends AbstractFilter implements OrderFilterInterface, FilterInterface
 {

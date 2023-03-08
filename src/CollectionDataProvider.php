@@ -2,23 +2,18 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Api\FilterLocatorTrait;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\Pagination\PaginationOptions;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
-use CCMBenchmark\Ting\ApiPlatform\Filter\OrderFilter;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\PaginationConfig;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
 use CCMBenchmark\Ting\Repository\HydratorSingleObject;
 use CCMBenchmark\Ting\Repository\Repository;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\ServiceLocator;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 
 use function array_column;
 

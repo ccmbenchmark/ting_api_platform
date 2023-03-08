@@ -6,7 +6,6 @@ namespace CCMBenchmark\Ting\ApiPlatform\Pagination;
 
 use ApiPlatform\State\Pagination\PaginationOptions;
 use Symfony\Component\HttpFoundation\Request;
-use InvalidArgumentException;
 
 final class PaginationConfig
 {

@@ -5,7 +5,6 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
 use Aura\SqlQuery\Common\SelectInterface;
-use CCMBenchmark\Ting\Repository\Repository;
 
 final class SearchFilter extends AbstractFilter implements SearchFilterInterface, FilterInterface
 {

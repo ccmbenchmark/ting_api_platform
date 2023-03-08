@@ -2,12 +2,9 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
-use ApiPlatform\Metadata\Operation;
-use Aura\SqlQuery\Common\SelectInterface;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use CCMBenchmark\Ting\MetadataRepository;
 use CCMBenchmark\Ting\Repository\Metadata;
-use CCMBenchmark\Ting\Repository\Repository;
 
 abstract class AbstractFilter
 {

@@ -2,14 +2,10 @@
 
 namespace CCMBenchmark\Ting\ApiPlatform;
 
-use ApiPlatform\Exception\RuntimeException;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use CCMBenchmark\Ting\Repository\Repository;
 use Symfony\Component\Uid\Uuid;
-use function array_column;
-use function array_filter;
-use function sprintf;
 
 class ItemDataProvider implements ProviderInterface
 {

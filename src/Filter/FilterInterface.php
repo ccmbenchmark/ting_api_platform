@@ -4,8 +4,6 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Api\FilterInterface as BaseFilterInterface;
 use Aura\SqlQuery\Common\SelectInterface;
-use CCMBenchmark\Ting\Query\QueryInterface;
-use CCMBenchmark\Ting\Repository\Repository;
 use ApiPlatform\Metadata\Operation;
 
 interface FilterInterface extends BaseFilterInterface
