@@ -4,9 +4,11 @@ namespace CCMBenchmark\Ting\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\Pagination\PaginationOptions;
+use ApiPlatform\State\Pagination\PaginatorInterface;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Aura\SqlQuery\Common\SelectInterface;
+use Aura\SqlQuery\QueryInterface;
 use CCMBenchmark\Ting\ApiPlatform\Filter\FilterInterface;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\PaginationConfig;
 use CCMBenchmark\Ting\ApiPlatform\Pagination\Paginator;
@@ -17,6 +19,11 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 use function array_column;
 
+/**
+ * @template T of object
+ *
+ * @template-implements ProviderInterface<T>
+ */
 class CollectionDataProvider implements ProviderInterface
 {
     public function __construct(
@@ -28,7 +35,7 @@ class CollectionDataProvider implements ProviderInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return null|PartialPaginatorInterface<T>
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PartialPaginatorInterface
     {
@@ -36,7 +43,7 @@ class CollectionDataProvider implements ProviderInterface
         $operationName = $operation->getName();
 
         $request = $this->requestStack->getCurrentRequest();
-        if (null === $request) {
+        if ($request === null || $resourceClass === '') {
             return null;
         }
 
@@ -48,7 +55,7 @@ class CollectionDataProvider implements ProviderInterface
         }
 
         $fields = array_column($repository->getMetadata()->getFields(), 'columnName');
-        /** @var SelectInterface $builder */
+        /** @var QueryInterface&SelectInterface $builder */
         $builder = $repository->getQueryBuilder(Repository::QUERY_SELECT);
         $builder->cols($fields);
         $builder->from($repository->getMetadata()->getTable());
@@ -56,10 +63,13 @@ class CollectionDataProvider implements ProviderInterface
         $this->applyPagination($builder, $resourceClass, $paginationConfig);
         $query = $repository->getQuery($builder->getStatement());
 
-        return new Paginator($query->query($repository->getCollection(new HydratorSingleObject())), $paginationConfig, $operation);
+        /** @var PaginatorInterface<T> $paginator */
+        $paginator = new Paginator($query->query($repository->getCollection(new HydratorSingleObject())), $paginationConfig, $operation);
+
+        return $paginator;
     }
 
-    private function applyPagination(SelectInterface $queryBuilder, string $resourceClass, PaginationConfig $paginationConfig): void
+    private function applyPagination(QueryInterface&SelectInterface $queryBuilder, string $resourceClass, PaginationConfig $paginationConfig): void
     {
         if ($paginationConfig->getPaginationEnabled() === false) {
             return;
@@ -73,7 +83,7 @@ class CollectionDataProvider implements ProviderInterface
     /**
      * @param array<string, array<string, array|string>> $context
      */
-    private function applyFilters(SelectInterface $queryBuilder, string $resourceClass, Operation $operation, array $context): void
+    private function applyFilters(QueryInterface&SelectInterface $queryBuilder, string $resourceClass, Operation $operation, array $context): void
     {
         if ($operation->getFilters() !== null) {
             foreach ($operation->getFilters() as $name) {

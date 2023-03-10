@@ -4,6 +4,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Metadata\Operation;
 use Aura\SqlQuery\Common\SelectInterface;
+use Aura\SqlQuery\QueryInterface;
 
 final class BooleanFilter extends AbstractFilter implements FilterInterface
 {
@@ -23,7 +24,7 @@ final class BooleanFilter extends AbstractFilter implements FilterInterface
         return $description;
     }
 
-    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
+    public function apply(QueryInterface&SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
     {
         $this->getPropertiesForFilter(
             $resourceClass,

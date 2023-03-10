@@ -34,8 +34,6 @@ services:
       - name: 'api_platform.state_provider'
         priority: -100
         key: 'api_platform.ting.state.collection_provider'
-  CCMBenchmark\Ting\ApiPlatform\CollectionDataProvider:
-    alias: 'api_platform.ting.state.collection_provider'
 
   api_platform.ting.state.item_provider:
     class: 'CCMBenchmark\Ting\ApiPlatform\ItemDataProvider'
@@ -48,8 +46,6 @@ services:
       - name: 'api_platform.state_provider'
         priority: -100
         key: 'api_platform.ting.item_data_provider'
-  CCMBenchmark\Ting\ApiPlatform\ItemDataProvider:
-    alias: 'api_platform.ting.state.item_provider'
 
   api_platform.ting.listener.view.write:
     class: 'CCMBenchmark\Ting\ApiPlatform\WriteListener'
@@ -60,8 +56,3 @@ services:
   api_platform.ting.repository_provider:
     class: 'CCMBenchmark\Ting\ApiPlatform\RepositoryProvider'
     arguments: ['@ting', '@ting.metadatarepository']
-  CCMBenchmark\Ting\ApiPlatform\RepositoryProvider:
-    alias: 'api_platform.ting.repository_provider'
-
-  CCMBenchmark\Ting\MetadataRepository:
-    alias: 'ting.metadatarepository'

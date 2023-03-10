@@ -7,6 +7,12 @@ use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use Traversable;
 use IteratorAggregate;
 
+/**
+ * @template T of object
+ *
+ * @template-implements PartialPaginatorInterface<T>
+ * @template-implements IteratorAggregate<mixed, T>
+ */
 final class Paginator implements PartialPaginatorInterface, IteratorAggregate
 {
     public float $maxResults = 0;

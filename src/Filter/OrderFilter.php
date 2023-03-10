@@ -4,6 +4,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Metadata\Operation;
 use Aura\SqlQuery\Common\SelectInterface;
+use Aura\SqlQuery\QueryInterface;
 use CCMBenchmark\Ting\ApiPlatform\RepositoryProvider;
 use CCMBenchmark\Ting\MetadataRepository;
 
@@ -57,7 +58,7 @@ class OrderFilter extends AbstractFilter implements OrderFilterInterface, Filter
         return $description;
     }
 
-    public function apply(SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
+    public function apply(QueryInterface&SelectInterface $queryBuilder, string $resourceClass, Operation $operation = null, array $context = []): void
     {
         if (!isset($context['filters'][$this->orderParameterName])) {
             return;
