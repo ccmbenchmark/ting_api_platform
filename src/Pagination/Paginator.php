@@ -3,6 +3,7 @@
 namespace CCMBenchmark\Ting\ApiPlatform\Pagination;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\Pagination\PaginatorInterface;
 use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use Traversable;
 use IteratorAggregate;
@@ -10,10 +11,10 @@ use IteratorAggregate;
 /**
  * @template T of object
  *
- * @template-implements PartialPaginatorInterface<T>
+ * @template-implements PaginatorInterface<T>
  * @template-implements IteratorAggregate<mixed, T>
  */
-final class Paginator implements PartialPaginatorInterface, IteratorAggregate
+final class Paginator implements PaginatorInterface, IteratorAggregate
 {
     public float $maxResults = 0;
     public int $firstResult = 0;
@@ -51,5 +52,16 @@ final class Paginator implements PartialPaginatorInterface, IteratorAggregate
     public function count(): int
     {
         return iterator_count($this->getIterator());
+    }
+
+    public function getLastPage(): float
+    {
+        return 0;
+    }
+
+    public function getTotalItems(): float
+    {
+        //TODO : implements SQL_CALC_FOUND_ROWS in Ting
+        return 0;
     }
 }

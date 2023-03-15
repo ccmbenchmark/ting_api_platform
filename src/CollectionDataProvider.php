@@ -35,9 +35,9 @@ class CollectionDataProvider implements ProviderInterface
     }
 
     /**
-     * @return null|PartialPaginatorInterface<T>
+     * @return null|PaginatorInterface<T>
      */
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PartialPaginatorInterface
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PaginatorInterface
     {
         $resourceClass = $operation->getClass() ?? '';
         $operationName = $operation->getName();
@@ -47,7 +47,7 @@ class CollectionDataProvider implements ProviderInterface
             return null;
         }
 
-        $paginationConfig = new PaginationConfig($this->paginationOptions, $request, $context, $resourceClass);
+        $paginationConfig = new PaginationConfig($this->paginationOptions, $request, $operation, $resourceClass);
 
         $repository = $this->repositoryProvider->getRepositoryFromResource($resourceClass);
         if (null === $repository) {

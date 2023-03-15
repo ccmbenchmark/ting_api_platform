@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CCMBenchmark\Ting\ApiPlatform\Pagination;
 
+use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\Pagination\PaginationOptions;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -16,22 +17,19 @@ final class PaginationConfig
     public function __construct(
         PaginationOptions $paginationOptions,
         Request $request,
-        array $context,
+        Operation $operation,
         public readonly string $parentResourceClass,
     ) {
-        $this->paginationEnabled = $context['paginationEnabled'] ?? $paginationOptions->isPaginationEnabled();
+        $this->paginationEnabled = $operation->getPaginationEnabled() ?? $paginationOptions->isPaginationEnabled();
         if ($this->paginationEnabled !== true) {
             return;
         }
 
-        $this->itemsPerPage = $context['paginationItemsPerPage'] ?? $paginationOptions->getItemsPerPage();
+        $this->itemsPerPage = $operation->getPaginationItemsPerPage() ?? $paginationOptions->getItemsPerPage();
 
-        $paginationClientEnabled = $context['paginationClientEnabled'] ?? $paginationOptions->isPaginationClientEnabled();
-        if ($paginationClientEnabled === true) {
-            $this->itemsPerPage = $context['paginationClientItemsPerPage'] ?? $this->itemsPerPage;
-        }
+        $paginationClientEnabled = $operation->getPaginationClientEnabled() ?? $paginationOptions->isPaginationClientEnabled();
 
-        $paginationMaximumItemsPerPage = $context['paginationMaximumItemsPerPage'] ?? $paginationOptions->getMaximumItemsPerPage();
+        $paginationMaximumItemsPerPage = $operation->getPaginationMaximumItemsPerPage() ?? $paginationOptions->getMaximumItemsPerPage();
         if ($paginationMaximumItemsPerPage !== null && $paginationMaximumItemsPerPage > $this->itemsPerPage) {
             $this->itemsPerPage = $paginationMaximumItemsPerPage;
         }
@@ -49,14 +47,28 @@ final class PaginationConfig
             return;
         }
 
-        foreach ($request->attributes->get('_graphql_args') as $resourceClass => $attributes) {
-            $limit = isset($attributes['first']) && is_integer($attributes['first']) ? $attributes['first'] : $this->itemsPerPage;
-            $offset = isset($attributes['offset']) && is_integer($attributes['offset']) ? $attributes['offset'] : 0;
+        if ($operation->getPaginationType() === 'cursor') {
+            foreach ($request->attributes->get('_graphql_args') as $resourceClass => $attributes) {
+                $limit = isset($attributes['first']) && is_integer($attributes['first']) ? $attributes['first'] : $this->itemsPerPage;
+                $offset = isset($attributes['offset']) && is_integer($attributes['offset']) ? $attributes['offset'] : 0;
 
-            $this->resourceClasses[$resourceClass] = [
-                'limit' => $limit,
-                'offset' => $offset,
-            ];
+                $this->resourceClasses[$resourceClass] = [
+                    'limit' => $limit,
+                    'offset' => $offset,
+                ];
+            }
+        }
+
+        if ($operation->getPaginationType() === 'page') {
+            foreach ($request->attributes->get('_graphql_args') as $resourceClass => $attributes) {
+                $limit = $this->itemsPerPage;
+                $page = isset($attributes['page']) && is_integer($attributes['page']) ? $attributes['page'] : 1;
+
+                $this->resourceClasses[$resourceClass] = [
+                    'limit' => $limit,
+                    'offset' => ($page - 1) * $this->itemsPerPage,
+                ];
+            }
         }
     }
 
