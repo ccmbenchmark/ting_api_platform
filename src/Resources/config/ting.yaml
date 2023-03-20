@@ -45,7 +45,7 @@ services:
         key: 'CCMBenchmark\Ting\ApiPlatform\ItemDataProvider'
       - name: 'api_platform.state_provider'
         priority: -100
-        key: 'api_platform.ting.item_data_provider'
+        key: 'api_platform.ting.state.item_provider'
 
   api_platform.ting.listener.view.write:
     class: 'CCMBenchmark\Ting\ApiPlatform\WriteListener'
