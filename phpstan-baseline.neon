@@ -1,0 +1,71 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\FetchAssociationsExtension\\:\\:addSelect\\(\\) has parameter \\$propertyMetadataOptions with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Extension/FetchAssociationsExtension.php
+
+		-
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\FetchAssociationsExtension\\:\\:joinRelations\\(\\) has parameter \\$normalizationContext with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Extension/FetchAssociationsExtension.php
+
+		-
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\FetchAssociationsExtension\\:\\:joinRelations\\(\\) has parameter \\$options with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Extension/FetchAssociationsExtension.php
+
+		-
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\PaginationExtension\\:\\:getResult\\(\\) should return array\\|CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\PartialPaginator\\<T of object\\> but returns CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Paginator\\<object\\>\\.$#"
+			count: 1
+			path: src/Extension/PaginationExtension.php
+
+		-
+			message: "#^Cannot call method getClassMetadata\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<T of object\\>\\|null\\.$#"
+			count: 1
+			path: src/Filter/AbstractFilter.php
+
+		-
+			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Filter/ExistsFilter.php
+
+		-
+			message: "#^Parameter \\#1 \\$property of method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Filter\\\\AbstractFilter\\:\\:denormalizePropertyName\\(\\) expects string, mixed given\\.$#"
+			count: 1
+			path: src/Filter/ExistsFilter.php
+
+		-
+			message: "#^Parameter \\#1 \\$property of method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Filter\\\\AbstractFilter\\:\\:denormalizePropertyName\\(\\) expects string, mixed given\\.$#"
+			count: 1
+			path: src/Filter/OrderFilter.php
+
+		-
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\State\\\\ItemProvider\\:\\:provide\\(\\) should return object\\|null but returns mixed\\.$#"
+			count: 1
+			path: src/State/ItemProvider.php
+
+		-
+			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadataFactory\\:\\:\\$loadedMetadata with generic class CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadata does not specify its types\\: T$#"
+			count: 1
+			path: src/Ting/ClassMetadataFactory.php
+
+		-
+			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadataFactory\\:\\:\\$loadedMetadata with generic class CCMBenchmark\\\\Ting\\\\Repository\\\\Repository does not specify its types\\: T$#"
+			count: 1
+			path: src/Ting/ClassMetadataFactory.php
+
+		-
+			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ManagerRegistry\\:\\:\\$instancedManagers with generic class CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager does not specify its types\\: T$#"
+			count: 1
+			path: src/Ting/ManagerRegistry.php
+
+		-
+			message: "#^Parameter \\#1 \\$callback of function array_map expects \\(callable\\(mixed\\)\\: mixed\\)\\|null, Closure\\(array\\|object\\)\\: mixed given\\.$#"
+			count: 1
+			path: src/Ting/Pagination/Paginator.php
+
+		-
+			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\RepositoryProvider\\:\\:\\$localCache with generic class CCMBenchmark\\\\Ting\\\\Repository\\\\Repository does not specify its types\\: T$#"
+			count: 1
+			path: src/Ting/RepositoryProvider.php

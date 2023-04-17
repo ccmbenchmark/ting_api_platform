@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata;
+
+/** @template T of object */
+class ApiResource
+{
+    /** @return class-string<T>|null */
+    public function getClass(): string|null;
+
+    /** @return Operations<T>|null */
+    public function getOperations(): Operations|null;
+
+    /**
+     * @param Operations<T> $operations
+     *
+     * @return self<T>
+     */
+    public function withOperations(Operations $operations): self;
+
+    /** @return array<string, Operation<T>>|null */
+    public function getGraphQlOperations(): array|null;
+
+    /**
+     * @param array<string, Operation<T>> $graphQlOperations
+     *
+     * @return self<T>
+     */
+    public function withGraphQlOperations(array $graphQlOperations): self;
+}

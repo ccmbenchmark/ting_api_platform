@@ -1,0 +1,13 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata\Property;
+
+use Countable;
+use IteratorAggregate;
+
+/** @template-implements IteratorAggregate<int, string> */
+final class PropertyNameCollection implements IteratorAggregate, Countable
+{
+}

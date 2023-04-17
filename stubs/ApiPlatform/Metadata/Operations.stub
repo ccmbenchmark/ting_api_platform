@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata;
+
+use Countable;
+use IteratorAggregate;
+
+/**
+ * @template T of object
+ * @template-implements IteratorAggregate<string, Operation<T>>
+ */
+final class Operations implements IteratorAggregate, Countable
+{
+}

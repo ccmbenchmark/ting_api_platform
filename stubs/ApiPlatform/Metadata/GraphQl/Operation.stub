@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata\GraphQl;
+
+use ApiPlatform\Metadata\Operation as AbstractOperation;
+
+/**
+ * @template T of object
+ * @template-extends AbstractOperation<T>
+ */
+class Operation extends AbstractOperation
+{
+}
