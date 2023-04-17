@@ -195,24 +195,24 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
 
         $ors = [];
         foreach ($values as $key => $value) {
-            $keyValueParameter = sprintf(':%s_%s', $valueParameter, $key);
+            $keyValueParameter = sprintf('%s_%s', $valueParameter, $key);
             $queryBuilder->bindValue($keyValueParameter, $caseSensitive ? $value : strtolower($value));
 
             $ors[] = match ($strategy) {
                 self::STRATEGY_PARTIAL => sprintf(
                     '%s LIKE %s',
                     $wrapCase($aliasedField),
-                    $wrapCase(sprintf('CONCAT("%%", %s, "%%")', $keyValueParameter)),
+                    $wrapCase(sprintf('CONCAT("%%", :%s, "%%")', $keyValueParameter)),
                 ),
                 self::STRATEGY_START => sprintf(
                     '%s LIKE %s',
                     $wrapCase($aliasedField),
-                    $wrapCase(sprintf('CONCAT(%s, "%%")', $keyValueParameter)),
+                    $wrapCase(sprintf('CONCAT(:%s, "%%")', $keyValueParameter)),
                 ),
                 self::STRATEGY_END => sprintf(
                     '%s LIKE %s',
                     $wrapCase($aliasedField),
-                    $wrapCase(sprintf('CONCAT("%%", %s)', $keyValueParameter)),
+                    $wrapCase(sprintf('CONCAT("%%", :%s)', $keyValueParameter)),
                 ),
                 self::STRATEGY_WORD_START => sprintf(
                     '(%s)',
@@ -222,12 +222,12 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
                             sprintf(
                                 '%s LIKE %s',
                                 $wrapCase($aliasedField),
-                                $wrapCase(sprintf('CONCAT(%s, "%%")', $keyValueParameter)),
+                                $wrapCase(sprintf('CONCAT(:%s, "%%")', $keyValueParameter)),
                             ),
                             sprintf(
                                 '%s LIKE %s',
                                 $wrapCase($aliasedField),
-                                $wrapCase(sprintf('CONCAT("%% ", %s, "%%")', $keyValueParameter)),
+                                $wrapCase(sprintf('CONCAT("%% ", :%s, "%%")', $keyValueParameter)),
                             ),
                         ],
                     ),

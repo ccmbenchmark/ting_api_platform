@@ -64,11 +64,10 @@ final class QueryBuilderHelper
     {
         $parameters = [];
         foreach ($values as $key => $value) {
-            $parameter = sprintf('%s_%d', $parameterPrefix, $key);
+            $parameters[] = $parameter = sprintf('%s_%d', $parameterPrefix, $key);
             $queryBuilder->bindValue($parameter, $value);
-            $parameters[] = ':' . $parameter;
         }
 
-        $queryBuilder->where(sprintf('%s.%s IN (%s)', $alias, $column, implode(', ', $parameters)));
+        $queryBuilder->where(sprintf('%s.%s IN (:%s)', $alias, $column, implode(', :', $parameters)));
     }
 }
