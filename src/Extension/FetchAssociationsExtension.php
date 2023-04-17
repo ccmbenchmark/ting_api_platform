@@ -250,11 +250,6 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
                 continue;
             }
 
-            // Only join the relation's relations recursively if it's a readableLink
-            if ($fetchEager !== true && $propertyMetadata->isReadableLink() !== true) {
-                continue;
-            }
-
             if (isset($attributesMetadata[$association['fieldName']])) {
                 $maxDepth = $attributesMetadata[$association['fieldName']]->getMaxDepth();
 
