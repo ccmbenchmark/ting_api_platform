@@ -63,11 +63,11 @@ final class Paginator implements Countable, IteratorAggregate
     {
         $countBuilder = clone $this->queryBuilder;
         $rootAlias = $countBuilder->getRootAlias();
-        $countBuilder->resetSelect()->resetJoin()->offset(0)->limit(0);
+        $countBuilder->resetSelect()->offset(0)->limit(0);
 
         $countBuilder->rawSelect(
             sprintf(
-                'COUNT(%s) AS ting_count',
+                'COUNT(DISTINCT (%s)) AS ting_count',
                 implode(
                     ', ',
                     array_map(
