@@ -44,9 +44,8 @@ final class RepositoryProvider
 
         $repositoryName = null;
         $retNull = false;
-        $object = (new ReflectionClass($resourceClass))->newInstanceWithoutConstructor();
         $this->metadataRepository->findMetadataForEntity(
-            $object,
+            $resourceClass,
             static function (Metadata $metadata) use (&$repositoryName): void {
                 $repositoryName = $metadata->getRepository();
             },
