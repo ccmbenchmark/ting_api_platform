@@ -4,55 +4,57 @@ declare(strict_types=1);
 
 namespace CCMBenchmark\Ting\ApiPlatform\Util;
 
-use CCMBenchmark\Ting\ApiPlatform\Ting\Association\MetadataAssociation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Expr\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 
 use function implode;
 use function sprintf;
 
-/** @phpstan-import-type AssociationMapping from MetadataAssociation */
 final class QueryBuilderHelper
 {
     private function __construct()
     {
     }
 
-    /** @param AssociationMapping $association */
     public static function addJoinOnce(
         SelectBuilder $queryBuilder,
         QueryNameGenerator $queryNameGenerator,
         string $alias,
-        array $association,
-        Join|null $joinType = null,
+        string $association,
+        JoinType|null $joinType = null,
     ): string {
-        $join = self::getExistingJoin($queryBuilder, $alias, $association['fieldName']);
+        $join = self::getExistingJoin($queryBuilder, $alias, $association);
         if ($join !== null) {
-            return $join['alias'];
+            return $join->alias;
         }
 
-        $associationAlias = $queryNameGenerator->generateJoinAlias($association['fieldName']);
+        $associationAlias = $queryNameGenerator->generateJoinAlias($association);
 
-        if ($joinType === Join::LEFT_JOIN || QueryChecker::hasLeftJoin($queryBuilder)) {
-            $queryBuilder->leftJoin($alias, $association['fieldName'], $association['targetTable'], $associationAlias, $association['joinColumns']);
+        if ($joinType === JoinType::LEFT_JOIN || QueryChecker::hasLeftJoin($queryBuilder)) {
+            $queryBuilder->leftJoin($alias, $association, $associationAlias);
         } else {
-            $queryBuilder->innerJoin($alias, $association['fieldName'], $association['targetTable'], $associationAlias, $association['joinColumns']);
+            $queryBuilder->innerJoin($alias, $association, $associationAlias);
         }
 
         return $associationAlias;
     }
 
-    /** @return array{type: Join, fieldName: string, alias: string}|null */
     public static function getExistingJoin(
         SelectBuilder $queryBuilder,
         string $alias,
-        string $fieldName,
-    ): array|null {
-        $parts = $queryBuilder->getJoin()[$alias] ?? [];
+        string $association,
+    ): Join|null {
+        $parts     = $queryBuilder->getJoins();
+        $rootAlias = $queryBuilder->getRootAliases()[0];
 
-        foreach ($parts as $part) {
-            if ($part['fieldName'] === $fieldName) {
-                return $part;
+        if (! isset($parts[$rootAlias])) {
+            return null;
+        }
+
+        foreach ($parts[$rootAlias] as $join) {
+            if ($join->alias === $alias && $join->property === $association) {
+                return $join;
             }
         }
 
@@ -60,7 +62,7 @@ final class QueryBuilderHelper
     }
 
     /** @param list<mixed> $values */
-    public static function in(SelectBuilder $queryBuilder, string $alias, string $column, array $values, string $parameterPrefix): void
+    public static function in(SelectBuilder $queryBuilder, string $alias, string $field, array $values, string $parameterPrefix): void
     {
         $parameters = [];
         foreach ($values as $key => $value) {
@@ -68,6 +70,6 @@ final class QueryBuilderHelper
             $queryBuilder->bindValue($parameter, $value);
         }
 
-        $queryBuilder->where(sprintf('%s.%s IN (:%s)', $alias, $column, implode(', :', $parameters)));
+        $queryBuilder->where(sprintf('%s.%s IN (:%s)', $alias, $field, implode(', :', $parameters)));
     }
 }

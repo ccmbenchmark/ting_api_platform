@@ -8,7 +8,7 @@ use ApiPlatform\Doctrine\Common\Filter\ExistsFilterInterface;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
@@ -83,7 +83,7 @@ final class ExistsFilter extends AbstractFilter implements ExistsFilterInterface
 
         $associations = [];
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $hydrator, $queryNameGenerator, $resourceClass, Join::INNER_JOIN);
+            [$alias, $field] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
         }
 
         $metadata = $this->getNestedMetadata($resourceClass, $associations);
@@ -93,7 +93,7 @@ final class ExistsFilter extends AbstractFilter implements ExistsFilterInterface
         }
 
         $queryBuilder
-            ->where(sprintf('%s.%s %s NULL', $alias, $metadata->getColumnName($field), $value ? 'IS NOT' : 'IS'));
+            ->where(sprintf('%s.%s %s NULL', $alias, $field, $value ? 'IS NOT' : 'IS'));
     }
 
     /**
@@ -118,7 +118,7 @@ final class ExistsFilter extends AbstractFilter implements ExistsFilterInterface
                 continue;
             }
 
-            $propertyName = $this->normalizePropertyName($property);
+            $propertyName                                                              = $this->normalizePropertyName($property);
             $description[sprintf('%s[%s]', $this->existsParameterName, $propertyName)] = [
                 'property' => $propertyName,
                 'type' => 'bool',

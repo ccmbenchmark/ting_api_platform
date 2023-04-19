@@ -46,7 +46,7 @@ final class Paginator implements Countable, IteratorAggregate
     public function getIterator(): CollectionInterface
     {
         $query = $this->repository->getQuery($this->queryBuilder->getStatement());
-        $query->setParams($this->queryBuilder->getBindValues());
+        $query->setParams($this->queryBuilder->getBindedValues());
 
         return $query->query($this->repository->getCollection($this->hydrator));
     }
@@ -62,24 +62,25 @@ final class Paginator implements Countable, IteratorAggregate
     private function getCountQuery(): Query
     {
         $countBuilder = clone $this->queryBuilder;
-        $rootAlias = $countBuilder->getRootAlias();
-        $countBuilder->resetSelect()->offset(0)->limit(0);
-
-        $countBuilder->rawSelect(
-            sprintf(
-                'COUNT(DISTINCT (%s)) AS ting_count',
-                implode(
-                    ', ',
-                    array_map(
-                        static fn (string $column) => "{$rootAlias}.{$column}",
-                        $this->classMetadata->getIdentifierColumnNames(),
+        $rootAlias    = $countBuilder->getRootAlias();
+        $countBuilder
+            ->select(
+                sprintf(
+                    'COUNT(DISTINCT (%s)) AS ting_count',
+                    implode(
+                        ', ',
+                        array_map(
+                            static fn (string $field) => "{$rootAlias}.{$field}",
+                            $this->classMetadata->getIdentifierFieldNames(),
+                        ),
                     ),
                 ),
-            ),
-        );
+            )
+            ->offset(0)
+            ->limit(0);
 
         $countQuery = $this->repository->getQuery($countBuilder->getStatement());
-        $countQuery->setParams($countBuilder->getBindValues());
+        $countQuery->setParams($countBuilder->getBindedValues());
 
         return $countQuery;
     }

@@ -35,6 +35,6 @@ final class ManagerRegistry
             return null;
         }
 
-        return $this->instancedManagers[$className] = new Manager($repository, $this->classMetadataFactory);
+        return $this->instancedManagers[$className] = new Manager($this, $repository, $this->classMetadataFactory);
     }
 }

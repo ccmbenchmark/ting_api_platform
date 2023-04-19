@@ -7,7 +7,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Doctrine\Common\Filter\OrderFilterInterface;
 use ApiPlatform\Metadata\Operation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
@@ -97,13 +97,10 @@ final class OrderFilter extends AbstractFilter implements OrderFilterInterface
 
         $alias = $queryBuilder->getRootAlias();
         $field = $property;
-        $associations = [];
 
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $hydrator, $queryNameGenerator, $resourceClass, Join::LEFT_JOIN);
+            [$alias, $field] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::LEFT_JOIN);
         }
-
-        $columnName = $this->getNestedMetadata($resourceClass, $associations)->getColumnName($field);
 
         if (($nullsComparison = $this->properties[$property]['nulls_comparison'] ?? $this->orderNullsComparison) !== null) {
             $nullsDirection = self::NULLS_DIRECTION_MAP[$nullsComparison][$value];
@@ -111,11 +108,11 @@ final class OrderFilter extends AbstractFilter implements OrderFilterInterface
             $nullRankHiddenField = sprintf('_%s_%s_null_rank', $alias, str_replace('.', '_', $field));
 
             $queryBuilder
-                ->rawSelect(sprintf('CASE WHEN %s.%s IS NULL THEN 0 ELSE 1 END AS %s', $alias, $columnName, $nullRankHiddenField))
-                ->orderBy($nullRankHiddenField, $nullsDirection);
+                ->select(sprintf('CASE WHEN %s.%s IS NULL THEN 0 ELSE 1 END AS %s', $alias, $field, $nullRankHiddenField))
+                ->orderBy("$nullRankHiddenField $nullsDirection");
         }
 
-        $queryBuilder->orderBy(sprintf('%s.%s', $alias, $columnName), $value);
+        $queryBuilder->orderBy(sprintf('%s.%s %s', $alias, $field, $value));
     }
 
     /**
@@ -139,7 +136,7 @@ final class OrderFilter extends AbstractFilter implements OrderFilterInterface
                 continue;
             }
 
-            $propertyName = $this->normalizePropertyName($property);
+            $propertyName                                                             = $this->normalizePropertyName($property);
             $description[sprintf('%s[%s]', $this->orderParameterName, $propertyName)] = [
                 'property' => $propertyName,
                 'type' => 'string',

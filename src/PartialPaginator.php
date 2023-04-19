@@ -28,9 +28,9 @@ abstract class PartialPaginator implements IteratorAggregate, PartialPaginatorIn
     /** @param Paginator<T> $paginator */
     public function __construct(protected readonly Paginator $paginator)
     {
-        $query = $this->paginator->getQueryBuilder();
+        $query        = $this->paginator->getQueryBuilder();
         $this->offset = $query->getOffset();
-        $this->limit = $query->getLimit() ?? 0;
+        $this->limit  = $query->getLimit() ?? 0;
     }
 
     /** @return Traversable<T> */

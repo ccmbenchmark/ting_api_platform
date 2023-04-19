@@ -6,7 +6,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryBuilderHelper;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
@@ -55,21 +55,19 @@ final class NumericFilter extends AbstractFilter
 
         $alias = $queryBuilder->getRootAlias();
         $field = $property;
-        $associations = [];
 
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $hydrator, $queryNameGenerator, $resourceClass, Join::INNER_JOIN);
+            [$alias, $field] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
         }
 
         $valueParameter = $queryNameGenerator->generateParameterName($field);
-        $columnName = $this->getNestedMetadata($resourceClass, $associations)->getColumnName($field);
 
         if (count($values) === 1) {
             $queryBuilder
-                ->where(sprintf('%s.%s = :%s', $alias, $columnName, $valueParameter))
+                ->where(sprintf('%s.%s = :%s', $alias, $field, $valueParameter))
                 ->bindValue($valueParameter, $values[0]);
         } else {
-            QueryBuilderHelper::in($queryBuilder, $alias, $columnName, $values, $valueParameter);
+            QueryBuilderHelper::in($queryBuilder, $alias, $field, $values, $valueParameter);
         }
     }
 
@@ -94,7 +92,7 @@ final class NumericFilter extends AbstractFilter
                 continue;
             }
 
-            $propertyName = $this->normalizePropertyName($property);
+            $propertyName         = $this->normalizePropertyName($property);
             $filterParameterNames = [$propertyName, $propertyName . '[]'];
             foreach ($filterParameterNames as $filterParameterName) {
                 $description[$filterParameterName] = [

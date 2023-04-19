@@ -15,7 +15,7 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\Association\AssociationType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\MetadataAssociation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryBuilderHelper;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
@@ -28,7 +28,6 @@ use Symfony\Component\Serializer\Mapping\Factory\ClassMetadataFactoryInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 
-use function array_diff;
 use function in_array;
 use function is_array;
 use function ucfirst;
@@ -137,7 +136,7 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
         }
 
         $currentDepth = $currentDepth > 0 ? $currentDepth - 1 : $currentDepth;
-        $metadata = $this->managerRegistry->getManagerForClass($resourceClass)?->getClassMetadata();
+        $metadata     = $this->managerRegistry->getManagerForClass($resourceClass)?->getClassMetadata();
         if ($metadata === null) {
             return;
         }
@@ -199,18 +198,16 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
 
                 $associationAlias = $queryNameGenerator->generateJoinAlias($association['fieldName']);
                 $queryBuilder->join(
-                    $isLeftJoin ? Join::LEFT_JOIN : Join::INNER_JOIN,
+                    $isLeftJoin ? JoinType::LEFT_JOIN : JoinType::INNER_JOIN,
                     $parentAlias,
                     $association['fieldName'],
-                    $association['targetTable'],
                     $associationAlias,
-                    $association['joinColumns'],
                 );
 
                 ++$joinCount;
             } else {
-                $associationAlias = $existingJoin['alias'];
-                $isLeftJoin = $existingJoin['type'] === Join::LEFT_JOIN;
+                $associationAlias = $existingJoin->alias;
+                $isLeftJoin       = $existingJoin->type === JoinType::LEFT_JOIN;
             }
 
             if ($fetchPartial === true) {
@@ -220,13 +217,12 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
                     $associationAlias,
                     $targetMetadata,
                     $options,
-                    $childNormalizationContext
+                    $childNormalizationContext,
                 );
             } else {
                 $this->addSelectOnce(
                     $queryBuilder,
                     $associationAlias,
-                    $targetMetadata->getColumnNames()
                 );
             }
 
@@ -277,46 +273,36 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
     }
 
     /**
-     * @param class-string<U> $entity
-     * @param ClassMetadata<U> $metadata
+     * @param class-string<U>    $entity
+     * @param ClassMetadata<U>   $metadata
      * @param ApiPlatformContext $context
      *
      * @template U of object
      */
     private function addSelect(SelectBuilder $queryBuilder, string $entity, string $alias, ClassMetadata $metadata, array $propertyMetadataOptions, array $context): void
     {
-        $columns = [];
         $identifiers = $metadata->getIdentifierFieldNames();
         foreach ($this->propertyNameCollectionFactory->create($entity) as $property) {
             $propertyMetadata = $this->propertyMetadataFactory->create($entity, $property, $propertyMetadataOptions);
 
-            if (in_array($property, $identifiers, true)) {
-                $columns[] = $metadata->getColumnName($property);
-
+            if (
+                ! in_array($property, $identifiers, true)
+                && $propertyMetadata->isIdentifier() !== true
+                && (! isset($context[AbstractNormalizer::ATTRIBUTES][$property]) || is_array($context[AbstractNormalizer::ATTRIBUTES][$property]))
+            ) {
                 continue;
             }
 
-            if ($propertyMetadata->isIdentifier() === true) {
-                $columns[] = $metadata->getColumnName($property);
-
-                continue;
-            }
-
-            if (isset($context[AbstractNormalizer::ATTRIBUTES][$property]) && !is_array($context[AbstractNormalizer::ATTRIBUTES][$property])) {
-                $columns[] = $metadata->getColumnName($property);
-
-                continue;
-            }
+            $queryBuilder->addSelect("{$alias}.{$property}");
         }
-
-        $this->addSelectOnce($queryBuilder, $alias, $columns);
     }
 
-    /**
-     * @param list<string> $columns
-     */
-    private function addSelectOnce(SelectBuilder $queryBuilder, string $alias, array $columns): void
+    private function addSelectOnce(SelectBuilder $queryBuilder, string $alias): void
     {
-        $queryBuilder->select($alias, array_diff($columns, $queryBuilder->getSelect()[$alias] ?? []));
+        if (in_array($alias, $queryBuilder->getSelect(), true)) {
+            return;
+        }
+
+        $queryBuilder->addSelect($alias);
     }
 }

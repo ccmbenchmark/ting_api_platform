@@ -76,13 +76,13 @@ final class TingLinkFactory implements LinkFactoryInterface, PropertyLinkFactory
                 continue;
             }
 
-            $link = new Link(
+            $link    = new Link(
                 fromProperty: $property,
                 toProperty: $association['mappedBy'],
                 fromClass: $resourceClass,
                 toClass: $association['targetEntity'],
             );
-            $link = $this->completeLink($link);
+            $link    = $this->completeLink($link);
             $links[] = $link;
         }
 

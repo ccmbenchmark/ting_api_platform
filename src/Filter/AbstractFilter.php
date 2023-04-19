@@ -10,7 +10,7 @@ use CCMBenchmark\Ting\ApiPlatform\State\CollectionProvider;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\MetadataAssociation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryBuilderHelper;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
@@ -97,7 +97,7 @@ abstract class AbstractFilter implements Filter
     protected function getTingFieldType(string $property, string $resourceClass): string|null
     {
         $propertyParts = $this->splitPropertyParts($property, $resourceClass);
-        $metadata = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
+        $metadata      = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
 
         return $metadata->getTypeOfField($propertyParts['field']);
     }
@@ -126,8 +126,8 @@ abstract class AbstractFilter implements Filter
     {
         if ($this->isPropertyNested($property, $resourceClass)) {
             $propertyParts = $this->splitPropertyParts($property, $resourceClass);
-            $metadata = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
-            $property = $propertyParts['field'];
+            $metadata      = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
+            $property      = $propertyParts['field'];
         } else {
             $metadata = $this->getClassMetadata($resourceClass);
         }
@@ -174,7 +174,7 @@ abstract class AbstractFilter implements Filter
     /**
      * @param class-string<T> $resourceClass
      *
-     * @return array{associations: list<AssociationMapping>, field: string}
+     * @return array{associations: list<string>, field: string}
      *
      * @template T of object
      */
@@ -183,16 +183,14 @@ abstract class AbstractFilter implements Filter
         $parts = explode('.', $property);
 
         $metadata = $this->getClassMetadata($resourceClass);
-        $slice = 0;
-        $associations = [];
+        $slice    = 0;
 
         foreach ($parts as $part) {
             if (! $metadata->hasAssociation($part)) {
                 continue;
             }
 
-            $associations[] = $association = $metadata->getAssociationMapping($part);
-            $metadata = $this->getClassMetadata($association['targetEntity']);
+            $metadata = $this->getClassMetadata($metadata->getAssociationMapping($part)['targetEntity']);
             ++$slice;
         }
 
@@ -201,14 +199,14 @@ abstract class AbstractFilter implements Filter
         }
 
         return [
-            'associations' => $associations,
+            'associations' => array_slice($parts, 0, $slice),
             'field' => implode('.', array_slice($parts, $slice)),
         ];
     }
 
     /**
-     * @param class-string<T>          $resourceClass
-     * @param list<AssociationMapping> $associations
+     * @param class-string<T> $resourceClass
+     * @param list<string>    $associations
      *
      * @return ClassMetadata<T|object>
      *
@@ -219,11 +217,11 @@ abstract class AbstractFilter implements Filter
         $metadata = $this->getClassMetadata($resourceClass);
 
         foreach ($associations as $association) {
-            if (! $metadata->hasAssociation($association['fieldName'])) {
+            if (! $metadata->hasAssociation($association)) {
                 continue;
             }
 
-            $associationClass = $metadata->getAssociationMapping($association['fieldName'])['targetEntity'];
+            $associationClass = $metadata->getAssociationMapping($association)['targetEntity'];
 
             $metadata = $this->getClassMetadata($associationClass);
         }
@@ -232,10 +230,9 @@ abstract class AbstractFilter implements Filter
     }
 
     /**
-     * @param HydratorRelational<T> $hydrator
-     * @param class-string<T>       $resourceClass
+     * @param class-string<T> $resourceClass
      *
-     * @return array{0: string, 1: string, 2: list<AssociationMapping>}
+     * @return array{0: string, 1: string, 2: list<string>}
      *
      * @template T of object
      */
@@ -243,17 +240,16 @@ abstract class AbstractFilter implements Filter
         string $property,
         string $rootAlias,
         SelectBuilder $queryBuilder,
-        HydratorRelational $hydrator,
         QueryNameGenerator $queryNameGenerator,
         string $resourceClass,
-        Join $joinType,
+        JoinType $joinType,
     ): array {
         $propertyParts = $this->splitPropertyParts($property, $resourceClass);
-        $parentAlias = $rootAlias;
-        $alias = null;
+        $parentAlias   = $rootAlias;
+        $alias         = null;
 
         foreach ($propertyParts['associations'] as $association) {
-            $alias = QueryBuilderHelper::addJoinOnce(
+            $alias       = QueryBuilderHelper::addJoinOnce(
                 $queryBuilder,
                 $queryNameGenerator,
                 $parentAlias,

@@ -7,7 +7,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Doctrine\Common\Filter\DateFilterInterface;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
@@ -47,18 +47,15 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
 
         $alias = $queryBuilder->getRootAlias();
         $field = $property;
-        $associations = [];
 
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $hydrator, $queryNameGenerator, $resourceClass, Join::INNER_JOIN);
+            [$alias, $field] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
         }
-
-        $column = $this->getNestedMetadata($resourceClass, $associations)->getColumnName($field);
 
         $nullManagement = $this->normalizeNullManagement($this->properties[$property] ?? null, $property);
 
         if ($nullManagement === self::EXCLUDE_NULL) {
-            $queryBuilder->where(sprintf('%s.%s IS NOT NULL', $alias, $column));
+            $queryBuilder->where(sprintf('%s.%s IS NOT NULL', $alias, $field));
         }
 
         if (isset($value[self::PARAMETER_BEFORE])) {
@@ -66,7 +63,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $queryBuilder,
                 $queryNameGenerator,
                 $alias,
-                $column,
+                $field,
                 self::PARAMETER_BEFORE,
                 $value[self::PARAMETER_BEFORE],
                 $nullManagement,
@@ -78,7 +75,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $queryBuilder,
                 $queryNameGenerator,
                 $alias,
-                $column,
+                $field,
                 self::PARAMETER_STRICTLY_BEFORE,
                 $value[self::PARAMETER_STRICTLY_BEFORE],
                 $nullManagement,
@@ -90,7 +87,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $queryBuilder,
                 $queryNameGenerator,
                 $alias,
-                $column,
+                $field,
                 self::PARAMETER_AFTER,
                 $value[self::PARAMETER_AFTER],
                 $nullManagement,
@@ -105,7 +102,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
             $queryBuilder,
             $queryNameGenerator,
             $alias,
-            $column,
+            $field,
             self::PARAMETER_STRICTLY_AFTER,
             $value[self::PARAMETER_STRICTLY_AFTER],
             $nullManagement,
@@ -160,7 +157,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
         SelectBuilder $queryBuilder,
         QueryNameGenerator $queryNameGenerator,
         string $alias,
-        string $column,
+        string $field,
         string $operator,
         mixed $value,
         string|null $nullManagement = null,
@@ -175,20 +172,20 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
         } catch (Throwable) {
             // Silently ignore this filter if it can not be transformed to a \DateTime
             $this->logger->notice('Invalid filter ignored', [
-                'exception' => new InvalidArgumentException(sprintf('The field "%s" has a wrong date format. Use one accepted by the \DateTime constructor', $column)),
+                'exception' => new InvalidArgumentException(sprintf('The field "%s" has a wrong date format. Use one accepted by the \DateTime constructor', $field)),
             ]);
 
             return;
         }
 
-        $valueParameter = $queryNameGenerator->generateParameterName($column);
-        $operatorValue = [
+        $valueParameter = $queryNameGenerator->generateParameterName($field);
+        $operatorValue  = [
             self::PARAMETER_BEFORE => '<=',
             self::PARAMETER_STRICTLY_BEFORE => '<',
             self::PARAMETER_AFTER => '>=',
             self::PARAMETER_STRICTLY_AFTER => '>',
         ];
-        $baseWhere = sprintf('%s.%s %s :%s', $alias, $column, $operatorValue[$operator], $valueParameter);
+        $baseWhere      = sprintf('%s.%s %s :%s', $alias, $field, $operatorValue[$operator], $valueParameter);
 
         if ($nullManagement === null || $nullManagement === self::EXCLUDE_NULL) {
             $queryBuilder->where($baseWhere);
@@ -229,9 +226,9 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 )
             )
         ) {
-            $queryBuilder->where(sprintf('(%s OR %s.%s IS NULL)', $baseWhere, $alias, $column));
+            $queryBuilder->where(sprintf('(%s OR %s.%s IS NULL)', $baseWhere, $alias, $field));
         } else {
-            $queryBuilder->where(sprintf('(%s OR %s.%s IS NOT NULL)', $baseWhere, $alias, $column));
+            $queryBuilder->where(sprintf('(%s OR %s.%s IS NOT NULL)', $baseWhere, $alias, $field));
         }
 
         $queryBuilder->bindValue($valueParameter, $value);

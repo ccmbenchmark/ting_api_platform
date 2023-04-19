@@ -31,7 +31,7 @@ final class OrderExtension implements QueryCollectionExtension
     /** @inheritDoc */
     public function applyToCollection(SelectBuilder $queryBuilder, HydratorRelational $hydrator, QueryNameGenerator $queryNameGenerator, string $resourceClass, Operation|null $operation = null, array $context = []): void
     {
-        if ($queryBuilder->hasOrderBy()) {
+        if ($queryBuilder->getOrderBy() !== []) {
             return;
         }
 
@@ -42,8 +42,8 @@ final class OrderExtension implements QueryCollectionExtension
 
         $rootAlias = $queryBuilder->getRootAlias();
 
-        $metadata = $manager->getClassMetadata();
-        $identifiers = $metadata->getIdentifierFieldNames();
+        $metadata     = $manager->getClassMetadata();
+        $identifiers  = $metadata->getIdentifierFieldNames();
         $defaultOrder = $operation?->getOrder() ?? [];
 
         if ($defaultOrder !== []) {
@@ -58,17 +58,11 @@ final class OrderExtension implements QueryCollectionExtension
                 if ($pos === false) {
                     $field = "{$rootAlias}.{$metadata->getColumnName($field)}";
                 } else {
-                    $association = $metadata->getAssociationMapping(substr($field, 0, $pos));
-                    $manager = $this->managerRegistry->getManagerForClass($association['targetEntity']);
-                    if ($manager === null) {
-                        continue;
-                    }
-
-                    $alias = QueryBuilderHelper::addJoinOnce($queryBuilder, $queryNameGenerator, $rootAlias, $association);
-                    $field = sprintf('%s.%s', $alias, $metadata->getColumnName(substr($field, $pos + 1)));
+                    $alias = QueryBuilderHelper::addJoinOnce($queryBuilder, $queryNameGenerator, $rootAlias, substr($field, 0, $pos));
+                    $field = sprintf('%s.%s', $alias, substr($field, $pos + 1));
                 }
 
-                $queryBuilder->orderBy($field, $order);
+                $queryBuilder->orderBy("{$field} {$order}");
             }
 
             return;
@@ -79,7 +73,7 @@ final class OrderExtension implements QueryCollectionExtension
         }
 
         foreach ($identifiers as $identifier) {
-            $queryBuilder->orderBy("{$rootAlias}.{$identifier}", $this->order);
+            $queryBuilder->orderBy("{$rootAlias}.{$identifier} {$this->order}");
         }
     }
 }

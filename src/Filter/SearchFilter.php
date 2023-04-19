@@ -7,7 +7,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Doctrine\Common\Filter\SearchFilterInterface;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryBuilderHelper;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
@@ -63,15 +63,15 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
 
         $associations = [];
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $hydrator, $queryNameGenerator, $resourceClass, Join::INNER_JOIN);
+            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
         }
 
         $caseSensitive = true;
-        $strategy = $this->normalizeStrategy($this->properties[$property] ?? self::STRATEGY_EXACT);
+        $strategy      = $this->normalizeStrategy($this->properties[$property] ?? self::STRATEGY_EXACT);
 
         // prefixing the strategy with i makes it case-insensitive
         if (str_starts_with($strategy, 'i')) {
-            $strategy = substr($strategy, 1);
+            $strategy      = substr($strategy, 1);
             $caseSensitive = false;
         }
 
@@ -89,7 +89,7 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
             return;
         }
 
-        $this->addWhereByStrategy($strategy, $queryBuilder, $queryNameGenerator, $alias, $metadata->getColumnName($field), $values, $caseSensitive);
+        $this->addWhereByStrategy($strategy, $queryBuilder, $queryNameGenerator, $alias, $field, $values, $caseSensitive);
     }
 
     /**
@@ -115,17 +115,17 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
 
             if ($this->isPropertyNested($property, $resourceClass)) {
                 $propertyParts = $this->splitPropertyParts($property, $resourceClass);
-                $field = $propertyParts['field'];
-                $metadata = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
+                $field         = $propertyParts['field'];
+                $metadata      = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
             } else {
-                $field = $property;
+                $field    = $property;
                 $metadata = $this->getClassMetadata($resourceClass);
             }
 
             $propertyName = $this->normalizePropertyName($property);
             if ($metadata->hasField($field)) {
-                $typeOfField = $this->getType($metadata->getTypeOfField($field));
-                $strategy = $this->normalizeStrategy($this->properties[$property] ?? self::STRATEGY_EXACT);
+                $typeOfField          = $this->getType($metadata->getTypeOfField($field));
+                $strategy             = $this->normalizeStrategy($this->properties[$property] ?? self::STRATEGY_EXACT);
                 $filterParameterNames = [$propertyName];
 
                 if ($strategy === self::STRATEGY_EXACT) {
@@ -167,7 +167,7 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
         SelectBuilder $queryBuilder,
         QueryNameGenerator $queryNameGenerator,
         string $alias,
-        string $column,
+        string $field,
         mixed $values,
         bool $caseSensitive,
     ): void {
@@ -175,9 +175,9 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
             $values = [$values];
         }
 
-        $wrapCase = $this->createWrapCase($caseSensitive);
-        $valueParameter = $queryNameGenerator->generateParameterName($column);
-        $aliasedField = sprintf('%s.%s', $alias, $column);
+        $wrapCase       = $this->createWrapCase($caseSensitive);
+        $valueParameter = $queryNameGenerator->generateParameterName($field);
+        $aliasedField   = sprintf('%s.%s', $alias, $field);
 
         if (! $strategy || $strategy === self::STRATEGY_EXACT) {
             if (count($values) === 1) {
@@ -188,7 +188,7 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
                 return;
             }
 
-            QueryBuilderHelper::in($queryBuilder, $alias, $column, $caseSensitive ? $values : array_map(strtolower(...), $values), $valueParameter);
+            QueryBuilderHelper::in($queryBuilder, $alias, $field, $caseSensitive ? $values : array_map(strtolower(...), $values), $valueParameter);
 
             return;
         }

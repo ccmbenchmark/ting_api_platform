@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace CCMBenchmark\Ting\ApiPlatform\Ting;
 
-use Aura\SqlQuery\Common\Select;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\Repository\Repository;
-
-use function assert;
 
 /**
  * @internal
@@ -17,30 +14,30 @@ use function assert;
  */
 final class Manager
 {
+    /** @var ClassMetadata<T>|null */
+    private ClassMetadata|null $classMetadata = null;
+
     /** @param Repository<T> $repository */
     public function __construct(
-        private Repository $repository,
-        private ClassMetadataFactory $classMetadataFactory,
+        private readonly ManagerRegistry $managerRegistry,
+        private readonly Repository $repository,
+        private readonly ClassMetadataFactory $classMetadataFactory,
     ) {
     }
 
     /** @return ClassMetadata<T> */
     public function getClassMetadata(): ClassMetadata
     {
-        return $this->classMetadataFactory->getMetadataFor($this->repository);
+        return $this->classMetadata ??= $this->classMetadataFactory->getMetadataFor($this->repository);
     }
 
     public function createQueryBuilder(string $alias): SelectBuilder
     {
-        $metadata = $this->getClassMetadata();
-
-        $innerQueryBuilder = $this->repository->getQueryBuilder(Repository::QUERY_SELECT);
-        assert($innerQueryBuilder instanceof Select);
-        $queryBuilder = new SelectBuilder($innerQueryBuilder);
+        $queryBuilder = new SelectBuilder($this->managerRegistry);
 
         $queryBuilder
-            ->select($alias, $this->getClassMetadata()->getColumnNames())
-            ->from($metadata->getTableName(), $alias);
+            ->select($alias)
+            ->from($this->getClassMetadata()->getName(), $alias);
 
         return $queryBuilder;
     }

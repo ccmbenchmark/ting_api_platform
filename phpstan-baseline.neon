@@ -46,6 +46,16 @@ parameters:
 			path: src/State/ItemProvider.php
 
 		-
+			message: "#^Cannot call method getClassMetadata\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<object\\>\\|null\\.$#"
+			count: 3
+			path: src/State/LinksHandler.php
+
+		-
+			message: "#^Parameter \\#2 \\$fieldName of method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Query\\\\SelectBuilder\\:\\:innerJoin\\(\\) expects string, string\\|null given\\.$#"
+			count: 1
+			path: src/State/LinksHandler.php
+
+		-
 			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadataFactory\\:\\:\\$loadedMetadata with generic class CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadata does not specify its types\\: T$#"
 			count: 1
 			path: src/Ting/ClassMetadataFactory.php
@@ -64,6 +74,16 @@ parameters:
 			message: "#^Parameter \\#1 \\$callback of function array_map expects \\(callable\\(mixed\\)\\: mixed\\)\\|null, Closure\\(array\\|object\\)\\: mixed given\\.$#"
 			count: 1
 			path: src/Ting/Pagination/Paginator.php
+
+		-
+			message: "#^Cannot call method getClassMetadata\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<T of object\\>\\|null\\.$#"
+			count: 1
+			path: src/Ting/Query/SelectBuilder.php
+
+		-
+			message: "#^Cannot call method getRepository\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<object\\>\\|null\\.$#"
+			count: 1
+			path: src/Ting/Query/SelectBuilder.php
 
 		-
 			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\RepositoryProvider\\:\\:\\$localCache with generic class CCMBenchmark\\\\Ting\\\\Repository\\\\Repository does not specify its types\\: T$#"

@@ -6,7 +6,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
@@ -37,47 +37,29 @@ final class BooleanFilter extends AbstractFilter
             return;
         }
 
-        $value = $this->normalizeValue($value);
+        $value = $this->normalizeValue($value, $property);
         if ($value === null) {
-            $this->logger->notice('Invalid filter ignored', [
-                'exception' => new InvalidArgumentException(sprintf(
-                    'Invalid boolean value for "%s" property, expected one of ( "%s" )',
-                    $property,
-                    implode(
-                        '" | "',
-                        [
-                            'true',
-                            'false',
-                            '1',
-                            '0',
-                        ],
-                    ),
-                )),
-            ]);
-
             return;
         }
 
         $alias = $queryBuilder->getRootAlias();
         $field = $property;
-        $associations = [];
 
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty(
+            [$alias, $field] = $this->addJoinsForNestedProperty(
                 $property,
                 $alias,
                 $queryBuilder,
-                $hydrator,
                 $queryNameGenerator,
                 $resourceClass,
-                Join::INNER_JOIN,
+                JoinType::INNER_JOIN,
             );
         }
 
         $valueParameter = $queryNameGenerator->generateParameterName($field);
 
         $queryBuilder
-            ->where(sprintf('%s.%s = :%s', $alias, $this->getNestedMetadata($resourceClass, $associations)->getColumnName($field), $valueParameter))
+            ->where(sprintf('%s.%s = :%s', $alias, $field, $valueParameter))
             ->bindValue($valueParameter, $value);
     }
 
@@ -99,7 +81,7 @@ final class BooleanFilter extends AbstractFilter
                 continue;
             }
 
-            $propertyName = $this->normalizePropertyName($property);
+            $propertyName               = $this->normalizePropertyName($property);
             $description[$propertyName] = [
                 'property' => $propertyName,
                 'type' => 'bool',
@@ -120,7 +102,7 @@ final class BooleanFilter extends AbstractFilter
         return $this->getTingFieldType($property, $resourceClass) === 'bool';
     }
 
-    private function normalizeValue(mixed $value): int|null
+    private function normalizeValue(mixed $value, string $property): int|null
     {
         if (in_array($value, [true, 'true', '1'], true)) {
             return 1;
@@ -129,6 +111,22 @@ final class BooleanFilter extends AbstractFilter
         if (in_array($value, [false, 'false', '0'], true)) {
             return 0;
         }
+
+        $this->logger->notice('Invalid filter ignored', [
+            'exception' => new InvalidArgumentException(sprintf(
+                'Invalid boolean value for "%s" property, expected one of ( "%s" )',
+                $property,
+                implode(
+                    '" | "',
+                    [
+                        'true',
+                        'false',
+                        '1',
+                        '0',
+                    ],
+                ),
+            )),
+        ]);
 
         return null;
     }

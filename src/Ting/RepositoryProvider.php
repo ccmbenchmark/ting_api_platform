@@ -8,7 +8,6 @@ use CCMBenchmark\Ting\MetadataRepository;
 use CCMBenchmark\Ting\Repository\Metadata;
 use CCMBenchmark\Ting\Repository\Repository;
 use CCMBenchmark\TingBundle\Repository\RepositoryFactory;
-use ReflectionClass;
 
 use function array_key_exists;
 use function class_exists;
@@ -43,7 +42,7 @@ final class RepositoryProvider
         }
 
         $repositoryName = null;
-        $retNull = false;
+        $retNull        = false;
         $this->metadataRepository->findMetadataForEntity(
             $resourceClass,
             static function (Metadata $metadata) use (&$repositoryName): void {

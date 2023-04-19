@@ -12,15 +12,16 @@ use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Association\AssociationType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
-use CCMBenchmark\Ting\Repository\HydratorRelational;
 
 use function array_reverse;
 use function array_shift;
 use function assert;
 use function count;
+use function implode;
 use function sprintf;
 
 /**
@@ -36,22 +37,25 @@ final class LinksHandler
     }
 
     /**
-     * @param array<string, mixed>  $identifiers
-     * @param HydratorRelational<T> $hydrator
-     * @param ApiPlatformContext    $context
-     * @param class-string<T>       $entityClass
-     * @param Operation<T>          $operation
+     * @param array<string, mixed> $identifiers
+     * @param ApiPlatformContext   $context
+     * @param class-string<T>      $entityClass
+     * @param Operation<T>         $operation
      */
     public function handleLinks(
         SelectBuilder $queryBuilder,
         array $identifiers,
-        HydratorRelational $hydrator,
         QueryNameGenerator $queryNameGenerator,
         array $context,
         string $entityClass,
         Operation $operation,
     ): void {
         if ($identifiers === []) {
+            return;
+        }
+
+        $metadata = $this->managerRegistry->getManagerForClass($entityClass)?->getClassMetadata();
+        if ($metadata === null) {
             return;
         }
 
@@ -62,30 +66,96 @@ final class LinksHandler
             return;
         }
 
-        $identifiers = array_reverse($identifiers);
+        $previousAlias = $alias;
+        $identifiers   = array_reverse($identifiers);
 
         foreach (array_reverse($links) as $link) {
             assert($link instanceof Link);
 
-            if ($link->getExpandedValue() !== null || $link->getFromClass() === null || $link->getFromProperty()) {
+            if ($link->getExpandedValue() !== null || $link->getFromClass() === null) {
                 continue;
             }
 
-            $metadata = $this->managerRegistry->getManagerForClass($link->getFromClass())?->getClassMetadata();
-            if ($metadata === null) {
-                continue;
-            }
-
-            $identifierProperties = $link->getIdentifiers() ?? [];
+            $identifierProperties    = $link->getIdentifiers() ?? [];
             $hasCompositeIdentifiers = count($identifierProperties) > 1;
+            $fromProperty            = $link->getFromProperty();
+            $toProperty              = $link->getToProperty();
 
-            $currentAlias = $link->getFromClass() === $entityClass ? $alias : $queryNameGenerator->generateJoinAlias($alias);
+            if (! $fromProperty && ! $toProperty) {
+                $metadata     = $this->managerRegistry->getManagerForClass($link->getFromClass())->getClassMetadata();
+                $currentAlias = $link->getFromClass() === $entityClass ? $alias : $queryNameGenerator->generateJoinAlias($alias);
+
+                foreach ($identifierProperties as $identifierProperty) {
+                    $placeholder = $queryNameGenerator->generateParameterName($identifierProperty);
+                    $queryBuilder->where("$currentAlias.$identifierProperty = :$placeholder");
+                    $queryBuilder->bindValue($placeholder, $this->getIdentifierValue($identifiers, $hasCompositeIdentifiers ? $identifierProperty : null));
+                }
+
+                $previousAlias = $currentAlias;
+                continue;
+            }
+
+            $joinProperties = $metadata->getIdentifierFieldNames();
+
+            if ($fromProperty && ! $toProperty) {
+                $metadata           = $this->managerRegistry->getManagerForClass($link->getFromClass())->getClassMetadata();
+                $joinAlias          = $queryNameGenerator->generateJoinAlias('m');
+                $associationMapping = $metadata->getAssociationMapping($fromProperty);
+
+                if ($associationMapping['type'] === AssociationType::TO_MANY) {
+                    $nextAlias   = $queryNameGenerator->generateJoinAlias($alias);
+                    $whereClause = [];
+                    foreach ($identifierProperties as $identifierProperty) {
+                        $placeholder   = $queryNameGenerator->generateParameterName($identifierProperty);
+                        $whereClause[] = "$nextAlias.{$identifierProperty} = :$placeholder";
+                        $queryBuilder->bindValue($placeholder, $this->getIdentifierValue($identifiers, $hasCompositeIdentifiers ? $identifierProperty : null));
+                    }
+
+                    if ($associationMapping['mappedBy'] === null) {
+                        $property = $joinProperties[0];
+                    } else {
+                        $property = $this->managerRegistry->getManagerForClass($associationMapping['targetEntity'])->getClassMetadata()->getIdentifierFieldNames()[0];
+                    }
+
+                    $subQuery = new SelectBuilder($this->managerRegistry);
+                    $subQuery
+                        ->select("$joinAlias.$property")
+                        ->from($link->getFromClass(), $nextAlias)
+                        ->innerJoin($nextAlias, $associationMapping['fieldName'], $joinAlias)
+                        ->where(sprintf('(%s)', implode(' AND ', $whereClause)));
+
+                    $queryBuilder->whereInSubquery($previousAlias, $property, $subQuery);
+
+                    $previousAlias = $nextAlias;
+                    continue;
+                }
+
+                if ($associationMapping['type'] === AssociationType::TO_ONE && $associationMapping['mappedBy'] !== null) {
+                    $queryBuilder->innerJoin($previousAlias, $associationMapping['mappedBy'], $joinAlias);
+                } else {
+                    $queryBuilder->innerJoin($joinAlias, $associationMapping['fieldName'], $previousAlias);
+                }
+
+                foreach ($identifierProperties as $identifierProperty) {
+                    $placeholder = $queryNameGenerator->generateParameterName($identifierProperty);
+                    $queryBuilder->where("$joinAlias.$identifierProperty = :$placeholder");
+                    $queryBuilder->bindValue($placeholder, $this->getIdentifierValue($identifiers, $hasCompositeIdentifiers ? $identifierProperty : null));
+                }
+
+                $previousAlias = $joinAlias;
+                continue;
+            }
+
+            $joinAlias = $queryNameGenerator->generateJoinAlias($alias);
+            $queryBuilder->innerJoin($previousAlias, $toProperty, $joinAlias);
 
             foreach ($identifierProperties as $identifierProperty) {
                 $placeholder = $queryNameGenerator->generateParameterName($identifierProperty);
-                $queryBuilder->where("$currentAlias.{$metadata->getColumnName($identifierProperty)} = :$placeholder");
+                $queryBuilder->where("$joinAlias.$identifierProperty = :$placeholder");
                 $queryBuilder->bindValue($placeholder, $this->getIdentifierValue($identifiers, $hasCompositeIdentifiers ? $identifierProperty : null));
             }
+
+            $previousAlias = $joinAlias;
         }
     }
 
@@ -105,7 +175,7 @@ final class LinksHandler
             return $links;
         }
 
-        $newLink = null;
+        $newLink      = null;
         $linkProperty = $context['linkProperty'] ?? null;
 
         foreach ($links as $link) {

@@ -7,7 +7,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Doctrine\Common\Filter\RangeFilterInterface;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
@@ -28,7 +28,7 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
     /** @inheritDoc */
     protected function filterProperty(
         string $property,
-        mixed $value,
+        mixed $values,
         SelectBuilder $queryBuilder,
         HydratorRelational $hydrator,
         QueryNameGenerator $queryNameGenerator,
@@ -37,34 +37,31 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
         array $context = [],
     ): void {
         if (
-            ! is_array($value) ||
+            ! is_array($values) ||
             ! $this->isPropertyEnabled($property, $resourceClass) ||
             ! $this->isPropertyMapped($property, $resourceClass)
         ) {
             return;
         }
 
-        $value = $this->normalizeValues($value, $property);
-        if ($value === null) {
+        $values = $this->normalizeValues($values, $property);
+        if ($values === null) {
             return;
         }
 
         $alias = $queryBuilder->getRootAlias();
         $field = $property;
-        $associations = [];
 
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $hydrator, $queryNameGenerator, $resourceClass, Join::INNER_JOIN);
+            [$alias, $field] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
         }
 
-        $column = $this->getNestedMetadata($resourceClass, $associations)->getColumnName($field);
-
-        foreach ($value as $operator => $value) {
+        foreach ($values as $operator => $value) {
             $this->addWhere(
                 $queryBuilder,
                 $queryNameGenerator,
                 $alias,
-                $column,
+                $field,
                 $operator,
                 $value,
             );
@@ -120,11 +117,11 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
         SelectBuilder $queryBuilder,
         QueryNameGenerator $queryNameGenerator,
         string $alias,
-        string $column,
+        string $field,
         string $operator,
         string $value,
     ): void {
-        $valueParameter = $queryNameGenerator->generateParameterName($column);
+        $valueParameter = $queryNameGenerator->generateParameterName($field);
 
         switch ($operator) {
             case self::PARAMETER_BETWEEN:
@@ -137,14 +134,14 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
 
                 if ($rangeValue[0] === $rangeValue[1]) {
                     $queryBuilder
-                        ->where(sprintf('%s.%s = :%s', $alias, $column, $valueParameter))
+                        ->where(sprintf('%s.%s = :%s', $alias, $field, $valueParameter))
                         ->bindValue($valueParameter, $rangeValue[0]);
 
                     return;
                 }
 
                 $queryBuilder
-                    ->where(sprintf('%1$s.%2$s BETWEEN :%3$s_1 AND :%3$s_2', $alias, $column, $valueParameter))
+                    ->where(sprintf('%1$s.%2$s BETWEEN :%3$s_1 AND :%3$s_2', $alias, $field, $valueParameter))
                     ->bindValue(sprintf('%s_1', $valueParameter), $rangeValue[0])
                     ->bindValue(sprintf('%s_2', $valueParameter), $rangeValue[1]);
 
@@ -156,7 +153,7 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
                 }
 
                 $queryBuilder
-                    ->where(sprintf('%s.%s > :%s', $alias, $column, $valueParameter))
+                    ->where(sprintf('%s.%s > :%s', $alias, $field, $valueParameter))
                     ->bindValue($valueParameter, $value);
 
                 break;
@@ -167,7 +164,7 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
                 }
 
                 $queryBuilder
-                    ->where(sprintf('%s.%s >= :%s', $alias, $column, $valueParameter))
+                    ->where(sprintf('%s.%s >= :%s', $alias, $field, $valueParameter))
                     ->bindValue($valueParameter, $value);
 
                 break;
@@ -178,7 +175,7 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
                 }
 
                 $queryBuilder
-                    ->where(sprintf('%s.%s < :%s', $alias, $column, $valueParameter))
+                    ->where(sprintf('%s.%s < :%s', $alias, $field, $valueParameter))
                     ->bindValue($valueParameter, $value);
 
                 break;
@@ -189,7 +186,7 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
                 }
 
                 $queryBuilder
-                    ->where(sprintf('%s.%s <= :%s', $alias, $column, $valueParameter))
+                    ->where(sprintf('%s.%s <= :%s', $alias, $field, $valueParameter))
                     ->bindValue($valueParameter, $value);
 
                 break;
@@ -204,7 +201,7 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
     private function normalizeValues(array $values, string $property): array|null
     {
         $normalized = [];
-        $operators = [self::PARAMETER_BETWEEN, self::PARAMETER_GREATER_THAN, self::PARAMETER_GREATER_THAN_OR_EQUAL, self::PARAMETER_LESS_THAN, self::PARAMETER_LESS_THAN_OR_EQUAL];
+        $operators  = [self::PARAMETER_BETWEEN, self::PARAMETER_GREATER_THAN, self::PARAMETER_GREATER_THAN_OR_EQUAL, self::PARAMETER_LESS_THAN, self::PARAMETER_LESS_THAN_OR_EQUAL];
 
         foreach ($values as $operator => $value) {
             if (! is_string($value) || ! in_array($operator, $operators, true)) {

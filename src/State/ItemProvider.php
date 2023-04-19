@@ -49,16 +49,16 @@ final class ItemProvider implements ProviderInterface
             return null;
         }
 
-        $queryBuilder = $manager->createQueryBuilder('o');
+        $queryBuilder       = $manager->createQueryBuilder('o');
         $queryNameGenerator = new IncrementedQueryNameGenerator();
-        $hydrator = new HydratorRelational();
+        $hydrator           = new HydratorRelational();
         $hydrator->callableFinalizeAggregate(
             static function (array $row) {
                 return $row['o'];
             },
         );
 
-        $this->linksHandler->handleLinks($queryBuilder, $uriVariables, $hydrator, $queryNameGenerator, $context, $entityClass, $operation);
+        $this->linksHandler->handleLinks($queryBuilder, $uriVariables, $queryNameGenerator, $context, $entityClass, $operation);
 
         foreach ($this->itemExtensions as $extension) {
             $extension->applyToItem($queryBuilder, $hydrator, $queryNameGenerator, $entityClass, $uriVariables, $operation, $context);
@@ -69,8 +69,8 @@ final class ItemProvider implements ProviderInterface
         }
 
         $repository = $manager->getRepository();
-        $query = $repository->getQuery($queryBuilder->getStatement());
-        $query->setParams($queryBuilder->getBindValues());
+        $query      = $repository->getQuery($queryBuilder->getStatement());
+        $query->setParams($queryBuilder->getBindedValues());
 
         return $query->query($repository->getCollection($hydrator))->first();
     }

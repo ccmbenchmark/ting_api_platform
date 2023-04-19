@@ -58,9 +58,9 @@ final class CollectionProvider implements ProviderInterface
             return null;
         }
 
-        $queryBuilder = $manager->createQueryBuilder('o');
+        $queryBuilder       = $manager->createQueryBuilder('o');
         $queryNameGenerator = new IncrementedQueryNameGenerator();
-        $hydrator = new HydratorRelational();
+        $hydrator           = new HydratorRelational();
         $hydrator->callableFinalizeAggregate(
             static function (array $row) {
                 return $row['o'];
@@ -70,7 +70,6 @@ final class CollectionProvider implements ProviderInterface
         $this->linksHandler->handleLinks(
             $queryBuilder,
             $uriVariables,
-            $hydrator,
             $queryNameGenerator,
             $context,
             $entityClass,
@@ -86,8 +85,8 @@ final class CollectionProvider implements ProviderInterface
         }
 
         $repository = $manager->getRepository();
-        $query = $repository->getQuery($queryBuilder->getStatement());
-        $query->setParams($queryBuilder->getBindValues());
+        $query      = $repository->getQuery($queryBuilder->getStatement());
+        $query->setParams($queryBuilder->getBindedValues());
 
         return $query->query($repository->getCollection($hydrator));
     }

@@ -32,6 +32,12 @@ final class ClassMetadata implements MetadataAssociation
         $this->fields = array_column($this->metadata->getFields(), null, 'fieldName');
     }
 
+    /** @return class-string<T> */
+    public function getName(): string
+    {
+        return $this->metadata->getEntity();
+    }
+
     public function getTableName(): string
     {
         return $this->metadata->getTable();
