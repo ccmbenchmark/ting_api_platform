@@ -15,6 +15,9 @@
         "phpstan/phpstan-symfony": "^1.0"
     },
     "autoload": {
+        "files": [
+            "src/Safe/pcre.php"
+        ],
         "psr-4": {
             "CCMBenchmark\\Ting\\ApiPlatform\\": "src/"
         }

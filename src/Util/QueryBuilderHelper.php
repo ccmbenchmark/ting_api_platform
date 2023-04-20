@@ -23,18 +23,20 @@ final class QueryBuilderHelper
         string $alias,
         string $association,
         JoinType|null $joinType = null,
+        string|null $originAlias = null,
+        string|null $newAlias = null
     ): string {
-        $join = self::getExistingJoin($queryBuilder, $alias, $association);
+        $join = self::getExistingJoin($queryBuilder, $alias, $association, $originAlias);
         if ($join !== null) {
             return $join->alias;
         }
 
-        $associationAlias = $queryNameGenerator->generateJoinAlias($association);
+        $associationAlias = $newAlias ?? $queryNameGenerator->generateJoinAlias($association);
 
         if ($joinType === JoinType::LEFT_JOIN || QueryChecker::hasLeftJoin($queryBuilder)) {
-            $queryBuilder->leftJoin($alias, $association, $associationAlias);
+            $queryBuilder->leftJoin("$alias.$association", $associationAlias);
         } else {
-            $queryBuilder->innerJoin($alias, $association, $associationAlias);
+            $queryBuilder->innerJoin("$alias.$association", $associationAlias);
         }
 
         return $associationAlias;
@@ -44,16 +46,17 @@ final class QueryBuilderHelper
         SelectBuilder $queryBuilder,
         string $alias,
         string $association,
+        string|null $originAlias = null
     ): Join|null {
         $parts     = $queryBuilder->getJoins();
-        $rootAlias = $queryBuilder->getRootAliases()[0];
+        $rootAlias = $originAlias ?? $queryBuilder->getRootAliases()[0];
 
         if (! isset($parts[$rootAlias])) {
             return null;
         }
 
         foreach ($parts[$rootAlias] as $join) {
-            if ($join->alias === $alias && $join->property === $association) {
+            if ($join->join === "$alias.$association") {
                 return $join;
             }
         }

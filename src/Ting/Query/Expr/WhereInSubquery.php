@@ -9,7 +9,6 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 final class WhereInSubquery
 {
     public function __construct(
-        public readonly string $alias,
         public readonly string $property,
         public readonly SelectBuilder $subQuery,
     ) {

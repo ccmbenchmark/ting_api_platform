@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use CCMBenchmark\Ting\ApiPlatform\Extension\FetchAssociationsExtension;
+use CCMBenchmark\Ting\ApiPlatform\Extension\EagerLoadingExtension;
+use CCMBenchmark\Ting\ApiPlatform\Extension\FilterEagerLoadingExtension;
 use CCMBenchmark\Ting\ApiPlatform\Extension\FilterExtension;
 use CCMBenchmark\Ting\ApiPlatform\Extension\OrderExtension;
 use CCMBenchmark\Ting\ApiPlatform\Extension\PaginationExtension;
@@ -125,7 +126,7 @@ return static function (ContainerConfigurator $configurator): void {
         ]);
     $services->alias(RangeFilter::class, 'ting.api_platform.range_filter');
 
-    $services->set('ting.api_platform.extension.query_extension.fetch_associations', FetchAssociationsExtension::class)
+    $services->set('ting.api_platform.extension.query_extension.eager_loading', EagerLoadingExtension::class)
         ->args([
             service(ManagerRegistry::class),
             service('api_platform.metadata.property.name_collection_factory'),
@@ -134,8 +135,15 @@ return static function (ContainerConfigurator $configurator): void {
             param('api_platform.eager_loading.max_joins'),
             param('api_platform.eager_loading.fetch_partial'),
         ])
+        // After filter_eager_loading
         ->tag('ting.api_platform.query_extension.collection', ['priority' => -18])
         ->tag('ting.api_platform.query_extension.item', ['priority' => -8]);
+    $services->set('ting.api_platform.extension.query_extension.filter_eager_loading', FilterEagerLoadingExtension::class)
+        ->args([
+            service(ManagerRegistry::class),
+        ])
+        // Needs to be executed right after the filter extension
+        ->tag('ting.api_platform.query_extension.collection', ['priority' => -17]);
     $services->set('ting.api_platform.query_extension.filter', FilterExtension::class)
         ->args([
             service('api_platform.filter_locator'),

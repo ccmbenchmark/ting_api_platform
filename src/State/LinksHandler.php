@@ -121,19 +121,19 @@ final class LinksHandler
                     $subQuery
                         ->select("$joinAlias.$property")
                         ->from($link->getFromClass(), $nextAlias)
-                        ->innerJoin($nextAlias, $associationMapping['fieldName'], $joinAlias)
+                        ->innerJoin("$nextAlias.{$associationMapping['fieldName']}", $joinAlias)
                         ->where(sprintf('(%s)', implode(' AND ', $whereClause)));
 
-                    $queryBuilder->whereInSubquery($previousAlias, $property, $subQuery);
+                    $queryBuilder->whereInSubquery("$previousAlias.$property", $subQuery);
 
                     $previousAlias = $nextAlias;
                     continue;
                 }
 
                 if ($associationMapping['type'] === AssociationType::TO_ONE && $associationMapping['mappedBy'] !== null) {
-                    $queryBuilder->innerJoin($previousAlias, $associationMapping['mappedBy'], $joinAlias);
+                    $queryBuilder->innerJoin("$previousAlias.{$associationMapping['mappedBy']}", $joinAlias);
                 } else {
-                    $queryBuilder->innerJoin($joinAlias, $associationMapping['fieldName'], $previousAlias);
+                    $queryBuilder->innerJoin("$joinAlias.{$associationMapping['fieldName']}", $previousAlias);
                 }
 
                 foreach ($identifierProperties as $identifierProperty) {
@@ -147,7 +147,7 @@ final class LinksHandler
             }
 
             $joinAlias = $queryNameGenerator->generateJoinAlias($alias);
-            $queryBuilder->innerJoin($previousAlias, $toProperty, $joinAlias);
+            $queryBuilder->innerJoin("$previousAlias.$toProperty", $joinAlias);
 
             foreach ($identifierProperties as $identifierProperty) {
                 $placeholder = $queryNameGenerator->generateParameterName($identifierProperty);

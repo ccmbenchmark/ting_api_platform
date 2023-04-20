@@ -13,7 +13,6 @@ use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface
 use CCMBenchmark\Ting\ApiPlatform\State\CollectionProvider;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\AssociationType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\MetadataAssociation;
-use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
@@ -29,7 +28,6 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 
 use function in_array;
-use function is_array;
 use function ucfirst;
 
 /**
@@ -39,7 +37,7 @@ use function ucfirst;
  * @template-implements QueryCollectionExtension<T>
  * @template-implements QueryItemExtension<T>
  */
-final class FetchAssociationsExtension implements QueryCollectionExtension, QueryItemExtension
+final class EagerLoadingExtension implements QueryCollectionExtension, QueryItemExtension
 {
     public function __construct(
         private readonly ManagerRegistry $managerRegistry,
@@ -168,13 +166,12 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
                 $inAttributes = null;
             }
 
-            $fetchEager = $propertyMetadata->getFetchEager();
-
-            if ($fetchEager === false) {
+            if ($inAttributes === false || $propertyMetadata->isReadable() === false) {
                 continue;
             }
 
-            if ($inAttributes === false || $propertyMetadata->isReadable() === false) {
+            // Don't interfere with API Platform
+            if ($inAttributes === true && $association['type'] === AssociationType::TO_MANY) {
                 continue;
             }
 
@@ -199,8 +196,7 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
                 $associationAlias = $queryNameGenerator->generateJoinAlias($association['fieldName']);
                 $queryBuilder->join(
                     $isLeftJoin ? JoinType::LEFT_JOIN : JoinType::INNER_JOIN,
-                    $parentAlias,
-                    $association['fieldName'],
+                    "$parentAlias.{$association['fieldName']}",
                     $associationAlias,
                 );
 
@@ -215,9 +211,7 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
                     $queryBuilder,
                     $association['targetEntity'],
                     $associationAlias,
-                    $targetMetadata,
                     $options,
-                    $childNormalizationContext,
                 );
             } else {
                 $this->addSelectOnce(
@@ -243,6 +237,11 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
 
             // Avoid recursive joins for self-referencing relations
             if ($association['targetEntity'] === $resourceClass) {
+                continue;
+            }
+
+            // Only join the relation's relations recursively if it's in attributes or if it's a readableLink
+            if ($inAttributes !== true && $propertyMetadata->isReadableLink() !== true) {
                 continue;
             }
 
@@ -274,26 +273,25 @@ final class FetchAssociationsExtension implements QueryCollectionExtension, Quer
 
     /**
      * @param class-string<U>    $entity
-     * @param ClassMetadata<U>   $metadata
-     * @param ApiPlatformContext $context
      *
      * @template U of object
      */
-    private function addSelect(SelectBuilder $queryBuilder, string $entity, string $alias, ClassMetadata $metadata, array $propertyMetadataOptions, array $context): void
+    private function addSelect(SelectBuilder $queryBuilder, string $entity, string $associationAlias, array $propertyMetadataOptions): void
     {
-        $identifiers = $metadata->getIdentifierFieldNames();
+        $metadata = $this->managerRegistry->getManagerForClass($entity)->getClassMetadata();
+
         foreach ($this->propertyNameCollectionFactory->create($entity) as $property) {
             $propertyMetadata = $this->propertyMetadataFactory->create($entity, $property, $propertyMetadataOptions);
 
-            if (
-                ! in_array($property, $identifiers, true)
-                && $propertyMetadata->isIdentifier() !== true
-                && (! isset($context[AbstractNormalizer::ATTRIBUTES][$property]) || is_array($context[AbstractNormalizer::ATTRIBUTES][$property]))
-            ) {
+            if ($propertyMetadata->isIdentifier() === true) {
+                $queryBuilder->addSelect("{$associationAlias}.{$property}");
+
                 continue;
             }
 
-            $queryBuilder->addSelect("{$alias}.{$property}");
+            if ($metadata->hasField($property) && ($propertyMetadata->isFetchable() === true || $propertyMetadata->isReadable())) {
+                $queryBuilder->addSelect("{$associationAlias}.{$property}");
+            }
         }
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CCMBenchmark\Ting\ApiPlatform\Ting\Query;
 
 use Aura\SqlQuery\Common\SelectInterface;
+use Aura\SqlQuery\Common\SubselectInterface;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Expr\From;
@@ -12,7 +13,6 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Expr\Join;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Expr\WhereInSubquery;
 use CCMBenchmark\Ting\Repository\Repository;
 use LogicException;
-use RuntimeException;
 
 use function array_flip;
 use function array_keys;
@@ -23,6 +23,8 @@ use function in_array;
 use function is_object;
 use function preg_replace_callback;
 use function sprintf;
+use function strpos;
+use function substr;
 
 final class SelectBuilder
 {
@@ -82,7 +84,7 @@ final class SelectBuilder
 
     public function getRootAlias(): string
     {
-        return $this->from[0]->alias ?? throw new RuntimeException('No alias was set before invoking getRootAlias().');
+        return $this->from[0]->alias ?? throw new LogicException('No alias was set before invoking getRootAlias().');
     }
 
     /** @return list<string> */
@@ -97,16 +99,85 @@ final class SelectBuilder
         return $this->select;
     }
 
+    /** @return list<From> */
+    public function getFrom(): array
+    {
+        return $this->from;
+    }
+
+    public function resetFrom(): self
+    {
+        $this->from = [];
+
+        return $this;
+    }
+
     /** @return array<string, list<Join>> */
     public function getJoins(): array
     {
         return $this->joins;
     }
 
+    public function resetJoins(): self
+    {
+        $this->joins = [];
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getWhere(): array
+    {
+        return $this->where;
+    }
+
+    /** @param list<string> $where */
+    public function setWhere(array $where): self
+    {
+        $this->where = $where;
+
+        return $this;
+    }
+
+    public function resetWhere(): self
+    {
+        $this->where = [];
+
+        return $this;
+    }
+
+    /** @return list<WhereInSubquery> */
+    public function getWhereInSubqueries(): array
+    {
+        return $this->whereInSubqueries;
+    }
+
+    /** @param list<WhereInSubquery> $whereInSubqueries */
+    public function setWhereInSubqueries(array $whereInSubqueries): self
+    {
+        $this->whereInSubqueries = $whereInSubqueries;
+
+        return $this;
+    }
+
+    public function resetWhereInSubqueries(): self
+    {
+        $this->whereInSubqueries = [];
+
+        return $this;
+    }
+
     /** @return list<string> */
     public function getOrderBy(): array
     {
         return $this->orderBy;
+    }
+
+    public function resetOrderBy(): self
+    {
+        $this->orderBy = [];
+
+        return $this;
     }
 
     public function bindValue(string $name, mixed $value): self
@@ -146,22 +217,23 @@ final class SelectBuilder
         return $this;
     }
 
-    public function leftJoin(string $parentAlias, string $fieldName, string $alias): self
+    public function leftJoin(string $join, string $alias): self
     {
-        return $this->join(JoinType::LEFT_JOIN, $parentAlias, $fieldName, $alias);
+        return $this->join(JoinType::LEFT_JOIN, $join, $alias);
     }
 
-    public function innerJoin(string $parentAlias, string $fieldName, string $alias): self
+    public function innerJoin(string $join, string $alias): self
     {
-        return $this->join(JoinType::INNER_JOIN, $parentAlias, $fieldName, $alias);
+        return $this->join(JoinType::INNER_JOIN, $join, $alias);
     }
 
-    public function join(JoinType $joinType, string $parentAlias, string $fieldName, string $alias): self
+    public function join(JoinType $joinType, string $join, string $alias): self
     {
+        $parentAlias = substr($join, 0, (int) strpos($join, '.'));
+
         $this->joins[$this->findRootAlias($alias, $parentAlias)][] = new Join(
             $joinType,
-            $parentAlias,
-            $fieldName,
+            $join,
             $alias,
         );
 
@@ -175,9 +247,9 @@ final class SelectBuilder
         return $this;
     }
 
-    public function whereInSubquery(string $alias, string $field, SelectBuilder $subQuery): self
+    public function whereInSubquery(string $property, SelectBuilder $subQuery): self
     {
-        $this->whereInSubqueries[] = new WhereInSubquery($alias, $field, $subQuery);
+        $this->whereInSubqueries[] = new WhereInSubquery($property, $subQuery);
 
         return $this;
     }
@@ -216,7 +288,7 @@ final class SelectBuilder
     /** @return class-string */
     private function getRootEntity(): string
     {
-        return $this->from[0]->class ?? throw new RuntimeException('No alias was set before invoking getRootEntity().');
+        return $this->from[0]->from ?? throw new LogicException('No alias was set before invoking getRootEntity().');
     }
 
     /** @return ClassMetadata<object> */
@@ -228,15 +300,23 @@ final class SelectBuilder
 
         foreach ($this->from as $from) {
             if ($from->alias === $alias) {
-                return $this->getClassMetadata($this->entityClassAliases[$alias] = $from->class);
+                return $this->getClassMetadata($this->entityClassAliases[$alias] = $from->from);
             }
         }
 
         foreach ($this->joins as $joins) {
             foreach ($joins as $join) {
                 if ($join->alias === $alias) {
-                    $parentClassMetadata = $this->getClassMetadataByAlias($join->parentAlias);
-                    $association         = $parentClassMetadata->getAssociationMapping($join->property);
+                    $pos = strpos($join->join, '.');
+                    if ($pos === false) {
+                        throw new LogicException('Join on something other than an entity association is not supported.');
+                    }
+
+                    $parentAlias = substr($join->join, 0, $pos);
+                    $association = substr($join->join, $pos + 1);
+
+                    $parentClassMetadata = $this->getClassMetadataByAlias($parentAlias);
+                    $association         = $parentClassMetadata->getAssociationMapping($association);
 
                     return $this->getClassMetadata($this->entityClassAliases[$alias] = $association['targetEntity']);
                 }
@@ -248,19 +328,25 @@ final class SelectBuilder
 
     public function getStatement(): string
     {
-        $select = $this->managerRegistry->getManagerForClass($this->getRootEntity())->getRepository()->getQueryBuilder(Repository::QUERY_SELECT);
-        assert($select instanceof SelectInterface);
-
-        $this->buildSelect($select);
-        $this->buildFrom($select);
-        $this->buildWhere($select);
-        $this->buildOrderBy($select);
-        $this->buildOffsetAndLimit($select);
-
-        return $select->getStatement();
+        return $this->getBuilder()->getStatement();
     }
 
-    private function buildSelect(SelectInterface $select): void
+    private function getBuilder(): SelectInterface&SubselectInterface
+    {
+        $select = $this->managerRegistry->getManagerForClass($this->getRootEntity())->getRepository()->getQueryBuilder(Repository::QUERY_SELECT);
+        assert($select instanceof SelectInterface && $select instanceof SubselectInterface);
+
+        $this
+            ->buildSelect($select)
+            ->buildFrom($select)
+            ->buildWhere($select)
+            ->buildOrderBy($select)
+            ->buildOffsetAndLimit($select);
+
+        return $select;
+    }
+
+    private function buildSelect(SelectInterface $select): self
     {
         $cols    = [];
         $aliases = array_flip($this->getAllAliases());
@@ -286,20 +372,30 @@ final class SelectBuilder
         }
 
         $select->cols($cols);
+
+        return $this;
     }
 
-    private function buildFrom(SelectInterface $select): void
+    private function buildFrom(SelectInterface $select): self
     {
         foreach ($this->from as $from) {
-            $select->from("{$this->getClassMetadata($from->class)->getTableName()} AS {$from->alias}");
+            $select->from("{$this->getClassMetadata($from->from)->getTableName()} AS {$from->alias}");
 
             foreach ($this->joins[$from->alias] ?? [] as $join) {
-                $parentClassMetadata = $this->getClassMetadataByAlias($join->parentAlias);
-                $association         = $parentClassMetadata->getAssociationMapping($join->property);
+                $pos = strpos($join->join, '.');
+                if ($pos === false) {
+                    throw new LogicException('Join on something other than an entity association is not supported.');
+                }
+
+                $parentAlias = substr($join->join, 0, $pos);
+                $association = substr($join->join, $pos + 1);
+
+                $parentClassMetadata = $this->getClassMetadataByAlias($parentAlias);
+                $associationMapping  = $parentClassMetadata->getAssociationMapping($association);
                 $condParts           = [];
 
-                foreach ($association['joinColumns'] as $joinColumn) {
-                    $condParts[] = "{$join->parentAlias}.{$joinColumn['sourceName']} = {$join->alias}.{$joinColumn['targetName']}";
+                foreach ($associationMapping['joinColumns'] as $joinColumn) {
+                    $condParts[] = "{$parentAlias}.{$joinColumn['sourceName']} = {$join->alias}.{$joinColumn['targetName']}";
                 }
 
                 $select->join(
@@ -307,14 +403,16 @@ final class SelectBuilder
                         JoinType::INNER_JOIN => 'INNER',
                         JoinType::LEFT_JOIN => 'LEFT',
                     },
-                    "{$association['targetTable']} AS {$join->alias}",
+                    "{$associationMapping['targetTable']} AS {$join->alias}",
                     implode(' AND ', $condParts),
                 );
             }
         }
+
+        return $this;
     }
 
-    private function buildWhere(SelectInterface $select): void
+    private function buildWhere(SelectInterface $select): self
     {
         $conds = preg_replace_callback(
             '#(\w+)\.(\w+)#',
@@ -331,13 +429,22 @@ final class SelectBuilder
         }
 
         foreach ($this->whereInSubqueries as $whereInSubquery) {
-            $metadata = $this->getClassMetadataByAlias($whereInSubquery->alias);
+            $pos = strpos($whereInSubquery->property, '.');
+            if ($pos === false) {
+                throw new LogicException('Property is not attached to any alias.');
+            }
 
-            $select->where("{$whereInSubquery->alias}.{$metadata->getColumnName($whereInSubquery->property)} IN ({$whereInSubquery->subQuery->getStatement()})");
+            $alias = substr($whereInSubquery->property, 0, $pos);
+            $property = substr($whereInSubquery->property, $pos + 1);
+            $metadata = $this->getClassMetadataByAlias($alias);
+
+            $select->where("{$alias}.{$metadata->getColumnName($property)} IN (?)", $whereInSubquery->subQuery->getBuilder());
         }
+
+        return $this;
     }
 
-    private function buildOrderBy(SelectInterface $select): void
+    private function buildOrderBy(SelectInterface $select): self
     {
         $specs = preg_replace_callback(
             '#(\w+)\.(\w+)#',
@@ -350,15 +457,19 @@ final class SelectBuilder
         );
 
         if ($specs === null) {
-            return;
+            return $this;
         }
 
         $select->orderBy($specs);
+
+        return $this;
     }
 
-    private function buildOffsetAndLimit(SelectInterface $select): void
+    private function buildOffsetAndLimit(SelectInterface $select): self
     {
         $select->offset($this->offset)->limit($this->limit ?? 0);
+
+        return $this;
     }
 
     /**
@@ -408,9 +519,8 @@ final class SelectBuilder
 
         foreach ($this->whereInSubqueries as $key => $whereInSubquery) {
             $this->whereInSubqueries[$key] = new WhereInSubquery(
-                $whereInSubquery->alias,
                 $whereInSubquery->property,
-                $whereInSubquery->subQuery,
+                clone $whereInSubquery->subQuery,
             );
         }
 

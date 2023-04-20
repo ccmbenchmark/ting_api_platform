@@ -10,9 +10,8 @@ final class Join
 {
     public function __construct(
         public readonly JoinType $type,
-        public readonly string $parentAlias,
-        public readonly string $property,
-        public readonly string $alias,
+        public readonly string   $join,
+        public readonly string   $alias,
     ) {
     }
 }

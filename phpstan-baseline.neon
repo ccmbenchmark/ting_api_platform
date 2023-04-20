@@ -1,19 +1,29 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\FetchAssociationsExtension\\:\\:addSelect\\(\\) has parameter \\$propertyMetadataOptions with no value type specified in iterable type array\\.$#"
+			message: "#^Cannot call method getClassMetadata\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<U of object\\>\\|null\\.$#"
 			count: 1
-			path: src/Extension/FetchAssociationsExtension.php
+			path: src/Extension/EagerLoadingExtension.php
 
 		-
-			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\FetchAssociationsExtension\\:\\:joinRelations\\(\\) has parameter \\$normalizationContext with no value type specified in iterable type array\\.$#"
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\EagerLoadingExtension\\:\\:addSelect\\(\\) has parameter \\$propertyMetadataOptions with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: src/Extension/FetchAssociationsExtension.php
+			path: src/Extension/EagerLoadingExtension.php
 
 		-
-			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\FetchAssociationsExtension\\:\\:joinRelations\\(\\) has parameter \\$options with no value type specified in iterable type array\\.$#"
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\EagerLoadingExtension\\:\\:joinRelations\\(\\) has parameter \\$normalizationContext with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: src/Extension/FetchAssociationsExtension.php
+			path: src/Extension/EagerLoadingExtension.php
+
+		-
+			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\EagerLoadingExtension\\:\\:joinRelations\\(\\) has parameter \\$options with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Extension/EagerLoadingExtension.php
+
+		-
+			message: "#^Cannot call method getClassMetadata\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<T of object\\>\\|null\\.$#"
+			count: 1
+			path: src/Extension/FilterEagerLoadingExtension.php
 
 		-
 			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Extension\\\\PaginationExtension\\:\\:getResult\\(\\) should return array\\|CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\PartialPaginator\\<T of object\\> but returns CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Paginator\\<object\\>\\.$#"
@@ -51,11 +61,6 @@ parameters:
 			path: src/State/LinksHandler.php
 
 		-
-			message: "#^Parameter \\#2 \\$fieldName of method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Query\\\\SelectBuilder\\:\\:innerJoin\\(\\) expects string, string\\|null given\\.$#"
-			count: 1
-			path: src/State/LinksHandler.php
-
-		-
 			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadataFactory\\:\\:\\$loadedMetadata with generic class CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\ClassMetadata does not specify its types\\: T$#"
 			count: 1
 			path: src/Ting/ClassMetadataFactory.php
@@ -82,6 +87,11 @@ parameters:
 
 		-
 			message: "#^Cannot call method getRepository\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<object\\>\\|null\\.$#"
+			count: 1
+			path: src/Ting/Query/SelectBuilder.php
+
+		-
+			message: "#^Method Aura\\\\SqlQuery\\\\Common\\\\WhereInterface\\:\\:where\\(\\) invoked with 2 parameters, 1 required\\.$#"
 			count: 1
 			path: src/Ting/Query/SelectBuilder.php
 
