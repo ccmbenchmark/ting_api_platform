@@ -114,7 +114,7 @@ final class NumericFilter extends AbstractFilter
      */
     private function isNumericField(string $property, string $resourceClass): bool
     {
-        return array_key_exists((string) $this->getTingFieldType($property, $resourceClass), self::TING_NUMERIC_TYPES);
+        return array_key_exists($this->getTingFieldType($property, $resourceClass), self::TING_NUMERIC_TYPES);
     }
 
     /** @return list<float|int>|null */

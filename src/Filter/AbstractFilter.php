@@ -94,7 +94,7 @@ abstract class AbstractFilter implements Filter
      *
      * @template T of object
      */
-    protected function getTingFieldType(string $property, string $resourceClass): string|null
+    protected function getTingFieldType(string $property, string $resourceClass): string
     {
         $propertyParts = $this->splitPropertyParts($property, $resourceClass);
         $metadata      = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);

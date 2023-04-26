@@ -100,9 +100,9 @@ final class ClassMetadata implements MetadataAssociation
         return array_column($this->fields, 'columnName');
     }
 
-    public function getTypeOfField(string $fieldName): string|null
+    public function getTypeOfField(string $fieldName): string
     {
-        return $this->fields[$fieldName]['type'] ?? null;
+        return $this->fields[$fieldName]['type'];
     }
 
     public function hasAssociation(string $property): bool

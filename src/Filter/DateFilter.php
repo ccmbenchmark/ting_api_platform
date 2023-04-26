@@ -24,6 +24,12 @@ use function sprintf;
 /** @phpstan-type FilterDescription array<string, array{property: string, type: class-string<DateTime>, required: bool}> */
 final class DateFilter extends AbstractFilter implements DateFilterInterface
 {
+    private const TING_DATE_TYPES = [
+        'datetime' => 'Y-m-d H:i:s',
+        'date' => 'Y-m-d',
+        'time' => 'H:i:s',
+    ];
+
     /** @inheritDoc */
     protected function filterProperty(
         string $property,
@@ -66,6 +72,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $field,
                 self::PARAMETER_BEFORE,
                 $value[self::PARAMETER_BEFORE],
+                self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
                 $nullManagement,
             );
         }
@@ -78,6 +85,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $field,
                 self::PARAMETER_STRICTLY_BEFORE,
                 $value[self::PARAMETER_STRICTLY_BEFORE],
+                self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
                 $nullManagement,
             );
         }
@@ -90,6 +98,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $field,
                 self::PARAMETER_AFTER,
                 $value[self::PARAMETER_AFTER],
+                self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
                 $nullManagement,
             );
         }
@@ -105,6 +114,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
             $field,
             self::PARAMETER_STRICTLY_AFTER,
             $value[self::PARAMETER_STRICTLY_AFTER],
+            self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
             $nullManagement,
         );
     }
@@ -160,6 +170,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
         string $field,
         string $operator,
         mixed $value,
+        string $format,
         string|null $nullManagement = null,
     ): void {
         $value = $this->normalizeValue($value, $operator);
@@ -231,7 +242,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
             $queryBuilder->where(sprintf('(%s OR %s.%s IS NOT NULL)', $baseWhere, $alias, $field));
         }
 
-        $queryBuilder->bindValue($valueParameter, $value);
+        $queryBuilder->bindValue($valueParameter, $value->format($format));
     }
 
     /**
@@ -241,7 +252,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
      */
     private function isDateField(string $property, string $resourceClass): bool
     {
-        return $this->getTingFieldType($property, $resourceClass) === 'datetime';
+        return isset(self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)]);
     }
 
     private function normalizeValue(mixed $value, string $operator): string|null
