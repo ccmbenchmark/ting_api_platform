@@ -77,6 +77,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->abstract()
         ->args([
             service(ManagerRegistry::class),
+            service('ting.serializerfactory'),
             service('logger')->ignoreOnInvalid(),
             null,
             service('api_platform.name_converter')->ignoreOnInvalid(),

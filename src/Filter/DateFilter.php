@@ -7,11 +7,16 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Doctrine\Common\Filter\DateFilterInterface;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
+use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
+use CCMBenchmark\Ting\Repository\Metadata;
+use CCMBenchmark\Ting\Serializer\SerializerFactoryInterface;
 use DateTime;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Throwable;
 
 use function array_fill_keys;
@@ -21,14 +26,21 @@ use function is_array;
 use function is_string;
 use function sprintf;
 
-/** @phpstan-type FilterDescription array<string, array{property: string, type: class-string<DateTime>, required: bool}> */
+/**
+ * @phpstan-type FilterDescription array<string, array{property: string, type: class-string<DateTime>, required: bool}>
+ * @phpstan-import-type Field from Metadata
+ */
 final class DateFilter extends AbstractFilter implements DateFilterInterface
 {
-    private const TING_DATE_TYPES = [
-        'datetime' => 'Y-m-d H:i:s',
-        'date' => 'Y-m-d',
-        'time' => 'H:i:s',
-    ];
+    public function __construct(
+        ManagerRegistry $managerRegistry,
+        private readonly SerializerFactoryInterface $serializerFactory,
+        ?LoggerInterface $logger = null,
+        ?array $properties = null,
+        ?NameConverterInterface $nameConverter = null
+    ) {
+        parent::__construct($managerRegistry, $logger, $properties, $nameConverter);
+    }
 
     /** @inheritDoc */
     protected function filterProperty(
@@ -54,8 +66,9 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
         $alias = $queryBuilder->getRootAlias();
         $field = $property;
 
+        $associations = [];
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $field] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
+            [$alias, $field, $associations] = $this->addJoinsForNestedProperty($property, $alias, $queryBuilder, $queryNameGenerator, $resourceClass, JoinType::INNER_JOIN);
         }
 
         $nullManagement = $this->normalizeNullManagement($this->properties[$property] ?? null, $property);
@@ -72,7 +85,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $field,
                 self::PARAMETER_BEFORE,
                 $value[self::PARAMETER_BEFORE],
-                self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
+                $this->getNestedMetadata($resourceClass, $associations)->getField($field),
                 $nullManagement,
             );
         }
@@ -85,7 +98,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $field,
                 self::PARAMETER_STRICTLY_BEFORE,
                 $value[self::PARAMETER_STRICTLY_BEFORE],
-                self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
+                $this->getNestedMetadata($resourceClass, $associations)->getField($field),
                 $nullManagement,
             );
         }
@@ -98,7 +111,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 $field,
                 self::PARAMETER_AFTER,
                 $value[self::PARAMETER_AFTER],
-                self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
+                $this->getNestedMetadata($resourceClass, $associations)->getField($field),
                 $nullManagement,
             );
         }
@@ -114,7 +127,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
             $field,
             self::PARAMETER_STRICTLY_AFTER,
             $value[self::PARAMETER_STRICTLY_AFTER],
-            self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)],
+            $this->getNestedMetadata($resourceClass, $associations)->getField($field),
             $nullManagement,
         );
     }
@@ -163,6 +176,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
         ];
     }
 
+    /** @param Field $fieldMetadata */
     protected function addWhere(
         SelectBuilder $queryBuilder,
         QueryNameGenerator $queryNameGenerator,
@@ -170,7 +184,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
         string $field,
         string $operator,
         mixed $value,
-        string $format,
+        array $fieldMetadata,
         string|null $nullManagement = null,
     ): void {
         $value = $this->normalizeValue($value, $operator);
@@ -242,7 +256,15 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
             $queryBuilder->where(sprintf('(%s OR %s.%s IS NOT NULL)', $baseWhere, $alias, $field));
         }
 
-        $queryBuilder->bindValue($valueParameter, $value->format($format));
+        $queryBuilder->bindValue(
+            $valueParameter,
+            isset($fieldMetadata['serializer'])
+                ? $this->serializerFactory->get($fieldMetadata['serializer'])->serialize(
+                    $value,
+                    $fieldMetadata['serializer_options']['serialize'] ?? []
+                )
+                : $value->format('Y-m-d H:i:s')
+        );
     }
 
     /**
@@ -252,7 +274,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
      */
     private function isDateField(string $property, string $resourceClass): bool
     {
-        return isset(self::TING_DATE_TYPES[$this->getTingFieldType($property, $resourceClass)]);
+        return $this->getTingFieldType($property, $resourceClass) === 'datetime';
     }
 
     private function normalizeValue(mixed $value, string $operator): string|null
