@@ -76,6 +76,7 @@ final class Paginator implements Countable, IteratorAggregate
                     ),
                 ),
             )
+            ->resetOrderBy()
             ->offset(0)
             ->limit(0);
 
