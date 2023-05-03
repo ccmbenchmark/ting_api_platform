@@ -192,12 +192,6 @@ return static function (ContainerConfigurator $configurator): void {
             service(ManagerRegistry::class),
             service('.inner'),
         ]);
-    $services->set('ting.api_platform.metadata.property.identifier_metadata_factory', TingPropertyMetadataFactory::class)
-        ->decorate('api_platform.metadata.property.identifier_metadata_factory', null, 40)
-        ->args([
-            service(ManagerRegistry::class),
-            service('.inner'),
-        ]);
 
     $services->set('ting.api_platform.metadata.resource.link_factory', TingLinkFactory::class)
         ->decorate('api_platform.metadata.resource.link_factory', null, 40)
