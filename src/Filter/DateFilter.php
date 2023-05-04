@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
-use ApiPlatform\Doctrine\Common\Filter\DateFilterInterface;
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
@@ -75,6 +74,19 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
 
         if ($nullManagement === self::EXCLUDE_NULL) {
             $queryBuilder->where(sprintf('%s.%s IS NOT NULL', $alias, $field));
+        }
+
+        if (isset($value[self::PARAMETER_EQUALS])) {
+            $this->addWhere(
+                $queryBuilder,
+                $queryNameGenerator,
+                $alias,
+                $field,
+                self::PARAMETER_EQUALS,
+                $value[self::PARAMETER_EQUALS],
+                $this->getNestedMetadata($resourceClass, $associations)->getField($field),
+                $nullManagement,
+            );
         }
 
         if (isset($value[self::PARAMETER_BEFORE])) {
@@ -153,6 +165,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 continue;
             }
 
+            $description += $this->getFilterDescription($property, self::PARAMETER_EQUALS);
             $description += $this->getFilterDescription($property, self::PARAMETER_BEFORE);
             $description += $this->getFilterDescription($property, self::PARAMETER_STRICTLY_BEFORE);
             $description += $this->getFilterDescription($property, self::PARAMETER_AFTER);
@@ -205,6 +218,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
 
         $valueParameter = $queryNameGenerator->generateParameterName($field);
         $operatorValue  = [
+            self::PARAMETER_EQUALS => '=',
             self::PARAMETER_BEFORE => '<=',
             self::PARAMETER_STRICTLY_BEFORE => '<',
             self::PARAMETER_AFTER => '>=',
@@ -242,6 +256,7 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
                 && in_array(
                     $operator,
                     [
+                        self::PARAMETER_EQUALS,
                         self::PARAMETER_AFTER,
                         self::PARAMETER_STRICTLY_AFTER,
                         self::PARAMETER_BEFORE,
