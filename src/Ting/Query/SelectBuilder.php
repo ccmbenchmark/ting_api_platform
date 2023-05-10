@@ -28,6 +28,8 @@ use function substr;
 
 final class SelectBuilder
 {
+    private const FIELD_REGEX = '#(\w+)\.(\w+)#';
+
     /** @var list<string> */
     private array $select = [];
 
@@ -363,7 +365,7 @@ final class SelectBuilder
             }
 
             $cols[] = preg_replace_callback(
-                '#(\w+)\.(\w+)#',
+                self::FIELD_REGEX,
                 function (array $matched): string {
                     $metadata = $this->getClassMetadataByAlias($matched[1]);
 
@@ -409,7 +411,7 @@ final class SelectBuilder
 
                 if ($join->conditionType !== null) {
                     $condParts[] = preg_replace_callback(
-                        '#(\w+)\.(\w+)#',
+                        self::FIELD_REGEX,
                         function (array $matched): string {
                             $metadata = $this->getClassMetadataByAlias($matched[1]);
 
@@ -436,7 +438,7 @@ final class SelectBuilder
     private function buildWhere(SelectInterface $select): self
     {
         $conds = preg_replace_callback(
-            '#(\w+)\.(\w+)#',
+            self::FIELD_REGEX,
             function (array $matched): string {
                 $metadata = $this->getClassMetadataByAlias($matched[1]);
 
@@ -468,7 +470,7 @@ final class SelectBuilder
     private function buildOrderBy(SelectInterface $select): self
     {
         $specs = preg_replace_callback(
-            '#(\w+)\.(\w+)#',
+            self::FIELD_REGEX,
             function (array $matched): string {
                 $metadata = $this->getClassMetadataByAlias($matched[1]);
 

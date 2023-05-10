@@ -6,15 +6,20 @@ namespace CCMBenchmark\Ting\ApiPlatform\Extension;
 
 use ApiPlatform\Api\ResourceClassResolverInterface;
 use ApiPlatform\Metadata\Operation;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Association\AssociationType;
+use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Expr\Join;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryBuilderHelper;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
 use LogicException;
+use function array_key_exists;
 use function array_map;
 use function CCMBenchmark\Ting\Safe\preg_replace;
 use function count;
+use function preg_match;
 use function preg_quote;
 use function strpos;
 use function substr;
@@ -39,6 +44,12 @@ final class FilterEagerLoadingExtension implements QueryCollectionExtension
      */
     public function applyToCollection(SelectBuilder $queryBuilder, HydratorRelational $hydrator, QueryNameGenerator $queryNameGenerator, string $resourceClass, ?Operation $operation = null, array $context = [],): void
     {
+        $classMetadata = $this->managerRegistry->getManagerForClass($resourceClass)?->getClassMetadata();
+
+        if ($classMetadata === null || !$this->hasToManyInWhere($queryBuilder, $classMetadata)) {
+            return;
+        }
+
         $wherePart = $queryBuilder->getWhere();
         $whereInSubQueryPart = $queryBuilder->getWhereInSubqueries();
 
@@ -152,6 +163,85 @@ final class FilterEagerLoadingExtension implements QueryCollectionExtension
         }
 
         return $queryBuilderClone;
+    }
+
+    /**
+     * @param ClassMetadata<object> $classMetadata
+     */
+    private function hasToManyInWhere(SelectBuilder $queryBuilder, ClassMetadata $classMetadata): bool
+    {
+        $wherePart = $queryBuilder->getWhere();
+        $aliasMapping = $this->createAliasMapping($queryBuilder);
+        $checked = [];
+
+        foreach ($wherePart as $part) {
+            foreach ($aliasMapping as $alias => $fieldPath) {
+                if ('' === $fieldPath) {
+                    // Root alias
+                    continue;
+                }
+
+                if (str_contains($part, $alias . '.')) {
+                    $fields = explode('.', $fieldPath);
+                    $targetEntityClassMetadata = $classMetadata;
+                    foreach ($fields as $field) {
+                        if ($targetEntityClassMetadata === null || !$targetEntityClassMetadata->hasAssociation($field)) {
+                            continue;
+                        }
+
+                        $mapping = $targetEntityClassMetadata->getAssociationMapping($field);
+                        $fieldId = $field.'-'.$mapping['targetEntity'];
+                        if (array_key_exists($fieldId, $checked)) {
+                            $targetEntityClassMetadata = $this->managerRegistry->getManagerForClass($mapping['targetEntity'])?->getClassMetadata();
+                            continue;
+                        }
+
+                        $checked[$fieldId] = true;
+
+                        if ($mapping['type'] === AssociationType::TO_MANY) {
+                            return true;
+                        }
+
+                        $targetEntityClassMetadata = $this->managerRegistry->getManagerForClass($mapping['targetEntity'])?->getClassMetadata();
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function createAliasMapping(SelectBuilder $queryBuilder): array
+    {
+        $rootAlias = $queryBuilder->getRootAlias();
+        $aliasMapping = [$rootAlias => ''];
+        foreach ($queryBuilder->getJoins() as $joins) {
+            foreach ($joins as $join) {
+                $joinTargetField = $this->getJoinTargetField($join);
+                if ($joinTargetField && isset($aliasMapping[$joinTargetField[0]])) {
+                    $aliasMapping[$join->alias] = trim($aliasMapping[$joinTargetField[0]].'.'.$joinTargetField[1], '.');
+                }
+            }
+        }
+
+        return $aliasMapping;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getJoinTargetField(Join $join): array
+    {
+        $targetField = explode('.', $join->join);
+        if ($join->condition !== null && preg_match('#([\w.:]+)\s*=\s*([\w.:]+)#', $join->condition, $matches) === 1) {
+            $operand = str_starts_with($matches[1], $join->alias . '.') ? $matches[2] : $matches[1];
+            $targetField = explode('.', $operand);
+        }
+
+        return $targetField;
     }
 
     /**
