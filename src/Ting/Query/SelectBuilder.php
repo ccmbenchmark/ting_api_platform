@@ -217,17 +217,17 @@ final class SelectBuilder
         return $this;
     }
 
-    public function leftJoin(string $join, string $alias): self
+    public function leftJoin(string $join, string $alias, ConditionType|null $conditionType = null, string|null $condition = null): self
     {
-        return $this->join(JoinType::LEFT_JOIN, $join, $alias);
+        return $this->join(JoinType::LEFT_JOIN, $join, $alias, $conditionType, $condition);
     }
 
-    public function innerJoin(string $join, string $alias): self
+    public function innerJoin(string $join, string $alias, ConditionType|null $conditionType = null, string|null $condition = null): self
     {
-        return $this->join(JoinType::INNER_JOIN, $join, $alias);
+        return $this->join(JoinType::INNER_JOIN, $join, $alias, $conditionType, $condition);
     }
 
-    public function join(JoinType $joinType, string $join, string $alias): self
+    public function join(JoinType $joinType, string $join, string $alias, ConditionType|null $conditionType = null, string|null $condition = null): self
     {
         $parentAlias = substr($join, 0, (int) strpos($join, '.'));
 
@@ -235,6 +235,8 @@ final class SelectBuilder
             $joinType,
             $join,
             $alias,
+            $conditionType,
+            $condition
         );
 
         return $this;
@@ -309,7 +311,7 @@ final class SelectBuilder
                 if ($join->alias === $alias) {
                     $pos = strpos($join->join, '.');
                     if ($pos === false) {
-                        throw new LogicException('Join on something other than an entity association is not supported.');
+                        return $this->getClassMetadata($this->entityClassAliases[$alias] = $join->join);
                     }
 
                     $parentAlias = substr($join->join, 0, $pos);
@@ -383,19 +385,38 @@ final class SelectBuilder
 
             foreach ($this->joins[$from->alias] ?? [] as $join) {
                 $pos = strpos($join->join, '.');
+                $associationMapping = null;
+                $parentAlias = null;
+
                 if ($pos === false) {
-                    throw new LogicException('Join on something other than an entity association is not supported.');
+                    $joinMetadata = $this->getClassMetadata($join->join);
+                    $tableName = $joinMetadata->getTableName();
+                } else {
+                    $parentAlias         = substr($join->join, 0, $pos);
+                    $association         = substr($join->join, $pos + 1);
+                    $parentClassMetadata = $this->getClassMetadataByAlias($parentAlias);
+                    $associationMapping  = $parentClassMetadata->getAssociationMapping($association);
+                    $tableName           = $associationMapping['targetTable'];
                 }
 
-                $parentAlias = substr($join->join, 0, $pos);
-                $association = substr($join->join, $pos + 1);
+                $condParts = [];
 
-                $parentClassMetadata = $this->getClassMetadataByAlias($parentAlias);
-                $associationMapping  = $parentClassMetadata->getAssociationMapping($association);
-                $condParts           = [];
+                if ($join->conditionType !== ConditionType::ON && $associationMapping !== null) {
+                    foreach ($associationMapping['joinColumns'] as $joinColumn) {
+                        $condParts[] = "{$parentAlias}.{$joinColumn['sourceName']} = {$join->alias}.{$joinColumn['targetName']}";
+                    }
+                }
 
-                foreach ($associationMapping['joinColumns'] as $joinColumn) {
-                    $condParts[] = "{$parentAlias}.{$joinColumn['sourceName']} = {$join->alias}.{$joinColumn['targetName']}";
+                if ($join->conditionType !== null) {
+                    $condParts[] = preg_replace_callback(
+                        '#(\w+)\.(\w+)#',
+                        function (array $matched): string {
+                            $metadata = $this->getClassMetadataByAlias($matched[1]);
+
+                            return "{$matched[1]}.{$metadata->getColumnName($matched[2])}";
+                        },
+                        '(' . ($join->condition ?? '') . ')',
+                    );
                 }
 
                 $select->join(
@@ -403,7 +424,7 @@ final class SelectBuilder
                         JoinType::INNER_JOIN => 'INNER',
                         JoinType::LEFT_JOIN => 'LEFT',
                     },
-                    "{$associationMapping['targetTable']} AS {$join->alias}",
+                    "{$tableName} AS {$join->alias}",
                     implode(' AND ', $condParts),
                 );
             }

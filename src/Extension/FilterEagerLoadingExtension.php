@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CCMBenchmark\Ting\ApiPlatform\Extension;
 
+use ApiPlatform\Api\ResourceClassResolverInterface;
 use ApiPlatform\Metadata\Operation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
@@ -28,7 +29,8 @@ use function substr;
 final class FilterEagerLoadingExtension implements QueryCollectionExtension
 {
     public function __construct(
-        private readonly ManagerRegistry $managerRegistry
+        private readonly ManagerRegistry $managerRegistry,
+        private readonly ResourceClassResolverInterface|null $resourceClassResolver = null,
     ) {
     }
 
@@ -97,7 +99,24 @@ final class FilterEagerLoadingExtension implements QueryCollectionExtension
             $joinString = preg_replace($this->buildReplacePatterns($aliases), $replacements, $joinPart->join);
             $pos = strpos($joinString, '.');
             if ($pos === false) {
-                throw new LogicException('Join on something other than an entity association is not supported.');
+                if ($this->resourceClassResolver === null || $joinPart->condition === null || !$this->resourceClassResolver->isResourceClass($joinString)) {
+                    continue;
+                }
+
+                $newAlias = $queryNameGenerator->generateJoinAlias($joinPart->alias);
+                $aliases[] = "{$joinPart->alias}.";
+                $replacements[] = "$newAlias.";
+                $condition = preg_replace($this->buildReplacePatterns($aliases), $replacements, $joinPart->condition);
+
+                $queryBuilderClone->join(
+                    $joinPart->type,
+                    $joinString,
+                    $newAlias,
+                    $joinPart->conditionType,
+                    $condition
+                );
+
+                continue;
             }
 
             $alias = substr($joinString, 0, $pos);

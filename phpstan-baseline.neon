@@ -57,7 +57,7 @@ parameters:
 
 		-
 			message: "#^Cannot call method getClassMetadata\\(\\) on CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Manager\\<object\\>\\|null\\.$#"
-			count: 3
+			count: 2
 			path: src/State/LinksHandler.php
 
 		-
@@ -93,6 +93,21 @@ parameters:
 		-
 			message: "#^Method Aura\\\\SqlQuery\\\\Common\\\\WhereInterface\\:\\:where\\(\\) invoked with 2 parameters, 1 required\\.$#"
 			count: 1
+			path: src/Ting/Query/SelectBuilder.php
+
+		-
+			message: "#^Parameter \\#1 \\$className of method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Query\\\\SelectBuilder\\:\\:getClassMetadata\\(\\) expects class\\-string\\<object\\>, string given\\.$#"
+			count: 2
+			path: src/Ting/Query/SelectBuilder.php
+
+		-
+			message: "#^Property CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Query\\\\SelectBuilder\\:\\:\\$entityClassAliases \\(array\\<string, class\\-string\\>\\) does not accept array\\<string, string\\>\\.$#"
+			count: 1
+			path: src/Ting/Query/SelectBuilder.php
+
+		-
+			message: "#^Unable to resolve the template type T in call to method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Ting\\\\Query\\\\SelectBuilder\\:\\:getClassMetadata\\(\\)$#"
+			count: 2
 			path: src/Ting/Query/SelectBuilder.php
 
 		-

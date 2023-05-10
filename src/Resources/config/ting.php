@@ -142,6 +142,7 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set('ting.api_platform.extension.query_extension.filter_eager_loading', FilterEagerLoadingExtension::class)
         ->args([
             service(ManagerRegistry::class),
+            service('api_platform.resource_class_resolver')->ignoreOnInvalid(),
         ])
         // Needs to be executed right after the filter extension
         ->tag('ting.api_platform.query_extension.collection', ['priority' => -17]);

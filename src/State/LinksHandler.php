@@ -14,7 +14,9 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\AssociationType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\ConditionType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
+use CCMBenchmark\Ting\ApiPlatform\State\Options;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 
 use function array_reverse;
@@ -54,8 +56,8 @@ final class LinksHandler
             return;
         }
 
-        $metadata = $this->managerRegistry->getManagerForClass($entityClass)?->getClassMetadata();
-        if ($metadata === null) {
+        $tingClassMetadata = $this->managerRegistry->getManagerForClass($entityClass)?->getClassMetadata();
+        if ($tingClassMetadata === null) {
             return;
         }
 
@@ -66,8 +68,9 @@ final class LinksHandler
             return;
         }
 
-        $previousAlias = $alias;
-        $identifiers   = array_reverse($identifiers);
+        $previousAlias          = $alias;
+        $previousJoinProperties = $tingClassMetadata->getIdentifierFieldNames();
+        $identifiers            = array_reverse($identifiers);
 
         foreach (array_reverse($links) as $link) {
             assert($link instanceof Link);
@@ -76,13 +79,15 @@ final class LinksHandler
                 continue;
             }
 
+            $fromClass = $link->getFromClass();
+
+            $fromClassMetadata       = $this->managerRegistry->getManagerForClass($fromClass)->getClassMetadata();
             $identifierProperties    = $link->getIdentifiers() ?? [];
             $hasCompositeIdentifiers = count($identifierProperties) > 1;
             $fromProperty            = $link->getFromProperty();
             $toProperty              = $link->getToProperty();
 
             if (! $fromProperty && ! $toProperty) {
-                $metadata     = $this->managerRegistry->getManagerForClass($link->getFromClass())->getClassMetadata();
                 $currentAlias = $link->getFromClass() === $entityClass ? $alias : $queryNameGenerator->generateJoinAlias($alias);
 
                 foreach ($identifierProperties as $identifierProperty) {
@@ -92,15 +97,15 @@ final class LinksHandler
                 }
 
                 $previousAlias = $currentAlias;
+                $previousJoinProperties = $fromClassMetadata->getIdentifierFieldNames();
                 continue;
             }
 
-            $joinProperties = $metadata->getIdentifierFieldNames();
+            $joinProperties = $tingClassMetadata->getIdentifierFieldNames();
 
             if ($fromProperty && ! $toProperty) {
-                $metadata           = $this->managerRegistry->getManagerForClass($link->getFromClass())->getClassMetadata();
                 $joinAlias          = $queryNameGenerator->generateJoinAlias('m');
-                $associationMapping = $metadata->getAssociationMapping($fromProperty);
+                $associationMapping = $fromClassMetadata->getAssociationMapping($fromProperty);
 
                 if ($associationMapping['type'] === AssociationType::TO_MANY) {
                     $nextAlias   = $queryNameGenerator->generateJoinAlias($alias);
@@ -133,7 +138,12 @@ final class LinksHandler
                 if ($associationMapping['type'] === AssociationType::TO_ONE && $associationMapping['mappedBy'] !== null) {
                     $queryBuilder->innerJoin("$previousAlias.{$associationMapping['mappedBy']}", $joinAlias);
                 } else {
-                    $queryBuilder->innerJoin("$joinAlias.{$associationMapping['fieldName']}", $previousAlias);
+                    $queryBuilder->innerJoin(
+                        $fromClass,
+                        $joinAlias,
+                        ConditionType::WITH,
+                        "$previousAlias.{$previousJoinProperties[0]} = $joinAlias.{$associationMapping['fieldName']}"
+                    );
                 }
 
                 foreach ($identifierProperties as $identifierProperty) {
@@ -143,6 +153,7 @@ final class LinksHandler
                 }
 
                 $previousAlias = $joinAlias;
+                $previousJoinProperties = $joinProperties;
                 continue;
             }
 
@@ -156,6 +167,7 @@ final class LinksHandler
             }
 
             $previousAlias = $joinAlias;
+            $previousJoinProperties = $joinProperties;
         }
     }
 
