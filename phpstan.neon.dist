@@ -1,5 +1,18 @@
+includes:
+	- phpstan-baseline.neon
+
 parameters:
-	level: 8
+	level: max
 	paths:
-		- src
-    checkMissingIterableValueType: false
+		- src/
+	stubFiles:
+		- stubs/ApiPlatform/Metadata/GraphQl/Operation.stub
+		- stubs/ApiPlatform/Metadata/Property/PropertyNameCollection.stub
+		- stubs/ApiPlatform/Metadata/Resource/Factory/ResourceMetadataCollectionFactoryInterface.stub
+		- stubs/ApiPlatform/Metadata/Resource/ResourceMetadataCollection.stub
+		- stubs/ApiPlatform/Metadata/ApiResource.stub
+		- stubs/ApiPlatform/Metadata/Link.stub
+		- stubs/ApiPlatform/Metadata/Operation.stub
+		- stubs/ApiPlatform/Metadata/Operations.stub
+		- stubs/ApiPlatform/State/Pagination/Pagination.stub
+	tmpDir: .build/phpstan/

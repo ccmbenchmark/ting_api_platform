@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata\Resource;
+
+use ApiPlatform\Metadata\ApiResource;
+use ArrayObject;
+
+/**
+ * @template T of object
+ * @template-extends ArrayObject<int, ApiResource<T>>
+ */
+final class ResourceMetadataCollection extends ArrayObject
+{
+}

@@ -1,0 +1,14 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata;
+
+final class Link
+{
+    /** @return class-string|null */
+    public function getFromClass(): string|null;
+
+    /** @return class-string|null */
+    public function getToClass(): string|null;
+}

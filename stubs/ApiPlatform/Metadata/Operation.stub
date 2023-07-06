@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\Metadata;
+
+/** @template T of object */
+abstract class Operation
+{
+    /** @return class-string<T>|null */
+    public function getClass(): string|null;
+
+    /** @return list<string>|null */
+    public function getFilters(): array|null;
+}

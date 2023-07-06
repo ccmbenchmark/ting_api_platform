@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApiPlatform\State\Pagination;
+
+use ApiPlatform\Metadata\Operation;
+
+final class Pagination
+{
+    /**
+     * @param Operation<T>|null                                                      $operation
+     * @param array{filters?: array<string, mixed>, graphql_operation_name?: string} $context
+     *
+     * @return array{0: int, 1: int, 2: int}
+     *
+     * @template T of object
+     */
+    public function getPagination(Operation|null $operation = null, array $context = []): array;
+}
