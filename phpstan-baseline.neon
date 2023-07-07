@@ -46,11 +46,6 @@ parameters:
 			path: src/Filter/ExistsFilter.php
 
 		-
-			message: "#^Parameter \\#1 \\$property of method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\Filter\\\\AbstractFilter\\:\\:denormalizePropertyName\\(\\) expects string, mixed given\\.$#"
-			count: 1
-			path: src/Filter/OrderFilter.php
-
-		-
 			message: "#^Method CCMBenchmark\\\\Ting\\\\ApiPlatform\\\\State\\\\ItemProvider\\:\\:provide\\(\\) should return object\\|null but returns mixed\\.$#"
 			count: 1
 			path: src/State/ItemProvider.php
