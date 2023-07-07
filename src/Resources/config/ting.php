@@ -13,6 +13,7 @@ use CCMBenchmark\Ting\ApiPlatform\Filter\ExistsFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\NumericFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\OrderFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\RangeFilter;
+use CCMBenchmark\Ting\ApiPlatform\Filter\SearchFilter;
 use CCMBenchmark\Ting\ApiPlatform\Metadata\Property\TingPropertyMetadataFactory;
 use CCMBenchmark\Ting\ApiPlatform\Metadata\Resource\TingLinkFactory;
 use CCMBenchmark\Ting\ApiPlatform\Metadata\Resource\TingResourceMetadataCollectionFactory;
@@ -26,6 +27,7 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\Association\NoMetadataAssociationFactory;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadataFactory;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\RepositoryProvider;
+use CCMBenchmark\Ting\ApiPlatform\Warmer\SearchFiltersDescriptionWarmer;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -209,4 +211,28 @@ return static function (ContainerConfigurator $configurator): void {
             service(ManagerRegistry::class),
             service('.inner'),
         ]);
+
+    $services->set('ting.api_platform.search_filters_description_warmer', SearchFiltersDescriptionWarmer::class)
+        ->tag('kernel.cache_warmer')
+        ->args([
+            service('ting.metadatarepository'),
+            service(ManagerRegistry::class),
+            service('logger')->ignoreOnInvalid(),
+            null,
+            service('api_platform.name_converter')->ignoreOnInvalid(),
+        ])
+    ;
+
+    $services->set('ting.api_platform.search_filter', SearchFilter::class)
+        ->abstract()
+        ->args([
+            service(ManagerRegistry::class),
+            service('logger')->ignoreOnInvalid(),
+            null,
+            service('api_platform.name_converter')->ignoreOnInvalid(),
+            param('api_platform.collection.order_parameter_name'),
+            param('api_platform.collection.order_nulls_comparison'),
+        ])
+        ->call('getDescriptionsFromFile', ['%kernel.cache_dir%/search_filters_descriptions.php']);
+    $services->alias(SearchFilter::class, 'ting.api_platform.search_filter');
 };

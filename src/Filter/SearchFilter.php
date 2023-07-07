@@ -34,6 +34,15 @@ use const FILTER_VALIDATE_INT;
 
 final class SearchFilter extends AbstractFilter implements SearchFilterInterface
 {
+    use SearchFilterTrait;
+
+    private array $descriptions;
+
+    public function getDescriptionsFromFile(string $filePath): void
+    {
+        $this->descriptions = include $filePath;
+    }
+
     /** @inheritDoc */
     protected function filterProperty(
         string $property,
@@ -101,65 +110,7 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
      */
     public function getDescription(string $resourceClass): array
     {
-        $description = [];
-
-        $properties = $this->properties;
-        if ($properties === null) {
-            $properties = array_fill_keys($this->getClassMetadata($resourceClass)->getFieldNames(), null);
-        }
-
-        foreach ($properties as $property => $strategy) {
-            if (! $this->isPropertyMapped($property, $resourceClass, false)) {
-                continue;
-            }
-
-            if ($this->isPropertyNested($property, $resourceClass)) {
-                $propertyParts = $this->splitPropertyParts($property, $resourceClass);
-                $field         = $propertyParts['field'];
-                $metadata      = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
-            } else {
-                $field    = $property;
-                $metadata = $this->getClassMetadata($resourceClass);
-            }
-
-            $propertyName = $this->normalizePropertyName($property);
-            if ($metadata->hasField($field)) {
-                $typeOfField          = $this->getType($metadata->getTypeOfField($field));
-                $strategy             = $this->normalizeStrategy($this->properties[$property] ?? self::STRATEGY_EXACT);
-                $filterParameterNames = [$propertyName];
-
-                if ($strategy === self::STRATEGY_EXACT) {
-                    $filterParameterNames[] = $propertyName . '[]';
-                }
-
-                foreach ($filterParameterNames as $filterParameterName) {
-                    $description[$filterParameterName] = [
-                        'property' => $propertyName,
-                        'type' => $typeOfField,
-                        'required' => false,
-                        'strategy' => $strategy,
-                        'is_collection' => str_ends_with((string) $filterParameterName, '[]'),
-                    ];
-                }
-            } elseif ($metadata->hasAssociation($field)) {
-                $filterParameterNames = [
-                    $propertyName,
-                    $propertyName . '[]',
-                ];
-
-                foreach ($filterParameterNames as $filterParameterName) {
-                    $description[$filterParameterName] = [
-                        'property' => $propertyName,
-                        'type' => 'string',
-                        'required' => false,
-                        'strategy' => self::STRATEGY_EXACT,
-                        'is_collection' => str_ends_with((string) $filterParameterName, '[]'),
-                    ];
-                }
-            }
-        }
-
-        return $description;
+        return $this->descriptions[$resourceClass];
     }
 
     protected function addWhereByStrategy(
@@ -251,18 +202,6 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
         };
     }
 
-    private function getType(string|null $tingType): string
-    {
-        return match ($tingType) {
-            'json' => 'array',
-            'int' => 'int',
-            'bool' => 'bool',
-            'datetime' => DateTime::class,
-            'double' => 'float',
-            default => 'string',
-        };
-    }
-
     /**
      * @param array<array-key, mixed> $values
      *
@@ -300,15 +239,5 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
         }
 
         return true;
-    }
-
-    private function normalizeStrategy(mixed $strategy): string
-    {
-        $allowedValues = [self::STRATEGY_EXACT, self::STRATEGY_END, self::STRATEGY_PARTIAL, self::STRATEGY_START, self::STRATEGY_WORD_START];
-        if (! in_array($strategy, $allowedValues, true)) {
-            return self::STRATEGY_EXACT;
-        }
-
-        return $strategy;
     }
 }

@@ -24,5 +24,6 @@ class TingApiPlatformExtension extends Extension
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('ting.php');
+        //$container->setParameter('ting.api_platform.search_filters_descriptions', include $container->getParameter('kernel.cache_dir') . '/search_filters_descriptions.php');
     }
 }
