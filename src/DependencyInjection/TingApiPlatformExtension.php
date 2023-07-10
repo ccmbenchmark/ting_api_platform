@@ -22,12 +22,12 @@ class TingApiPlatformExtension extends Extension
             ->addTag('ting.api_platform.query_extension.collection');
         $container->registerForAutoconfiguration(QueryItemExtension::class)
             ->addTag('ting.api_platform.query_extension.item');
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
+        $loader->load('ting.php');
         $container
             ->registerForAutoconfiguration(AbstractFilter::class)
             ->addTag('ting.api_platform.filter')
         ;
 
-        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $loader->load('ting.php');
     }
 }

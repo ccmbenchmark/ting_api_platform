@@ -15,7 +15,7 @@ class FilterCompilerPass implements CompilerPassInterface
     {
         $warmer = $container->findDefinition(FilterWarmer::class);
 
-        $filterServices = $container->findTaggedServiceIds('ting.api_platform.filter');
+        $filterServices = $container->findTaggedServiceIds('api_platform.filter');
         array_walk($filterServices, fn(array &$tagParams, string $serviceId) => $tagParams = new Reference($serviceId));
 
         $warmer
