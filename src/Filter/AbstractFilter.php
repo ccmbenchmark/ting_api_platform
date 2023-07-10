@@ -6,6 +6,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 
 use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
+use CCMBenchmark\Ting\ApiPlatform\DependencyInjection\FilterDescriptionGetter;
 use CCMBenchmark\Ting\ApiPlatform\State\CollectionProvider;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\MetadataAssociation;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
@@ -33,9 +34,12 @@ use function substr;
  * @phpstan-import-type ApiPlatformContext from CollectionProvider
  * @phpstan-import-type AssociationMapping from MetadataAssociation
  */
-abstract class AbstractFilter implements Filter
+abstract class AbstractFilter implements Filter, WarmableFilterInterface
 {
+    use WarmableFilterTrait;
+
     protected LoggerInterface $logger;
+    protected ?array $filtersDescriptions = null;
 
     /** @param array<string, string|array{default_direction?: string, nulls_comparison?: string}>|null $properties */
     public function __construct(
