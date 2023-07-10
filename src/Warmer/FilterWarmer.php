@@ -25,14 +25,17 @@ class FilterWarmer implements CacheWarmerInterface
 
     public function warmUp(string $cacheDir): void
     {
-        mkdir ($cacheDir . '/ting_api_platform'); // @todo parameter
+        $cacheDir .= '/ting_api_platform';
+        if (!file_exists($cacheDir)) {
+            mkdir ($cacheDir); // @todo parameter
+        }
         foreach ($this->filterServices as $serviceId => $filterService) {
             $descriptions = [];
             foreach ($this->metadataRepository->getAllEntities() as $resourceClass) {
                 $descriptions[$resourceClass] = $filterService->getDescription($resourceClass);
             }
             file_put_contents(
-                $cacheDir . '/ting_api_platform/search_filters_descriptions_' . $serviceId . '.php',
+                $cacheDir . '/search_filters_descriptions_' . $serviceId . '.php',
                 '<?php return ' . var_export($descriptions, true) . ';'
             );
         }
