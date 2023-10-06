@@ -99,7 +99,7 @@ abstract class AbstractFilter implements Filter
         $propertyParts = $this->splitPropertyParts($property, $resourceClass);
         $metadata      = $this->getNestedMetadata($resourceClass, $propertyParts['associations']);
 
-        return $metadata->getTypeOfField($propertyParts['field']);
+        return $metadata->hasField($propertyParts['field']) ? $metadata->getTypeOfField($propertyParts['field']) : '';
     }
 
     /**
