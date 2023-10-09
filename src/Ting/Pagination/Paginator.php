@@ -7,6 +7,7 @@ namespace CCMBenchmark\Ting\ApiPlatform\Ting\Pagination;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\Query\Query;
+use CCMBenchmark\Ting\Repository\Collection;
 use CCMBenchmark\Ting\Repository\CollectionInterface;
 use CCMBenchmark\Ting\Repository\HydratorArray;
 use CCMBenchmark\Ting\Repository\HydratorInterface;
@@ -28,6 +29,7 @@ use function sprintf;
 final class Paginator implements Countable, IteratorAggregate
 {
     private int|null $count = null;
+    private SelectBuilder|null $countQueryBuilder = null;
 
     /**
      * @param Repository<T>        $repository
@@ -51,6 +53,42 @@ final class Paginator implements Countable, IteratorAggregate
         return $query->query($this->repository->getCollection($this->hydrator));
     }
 
+    public function addRequiredWhereInClause(): void
+    {
+        $distinctIds = $this->getIdsFromDistinctQueryWithLimitAndOffset();
+        // Save the current builder as countQueryBuilder for $this->getCountQuery().
+        $this->countQueryBuilder = clone $this->queryBuilder;
+        $whereInClause = $this->queryBuilder->getRootAlias() . '.' . $this->classMetadata->getIdentifierFieldNames()[0] . ' IN (' . implode(',', $distinctIds) . ')';
+        // Make sure query won't return any result if $distinctIds is empty.
+        if (empty($distinctIds)) {
+            $whereInClause = '1 = 0';
+        }
+        $this->queryBuilder->where($whereInClause);
+        $this->queryBuilder->limit(0);
+        $this->queryBuilder->offset(0);
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function getIdsFromDistinctQueryWithLimitAndOffset(): array
+    {
+        $subQueryBuilder = clone $this->queryBuilder;
+        $rootAlias = $subQueryBuilder->getRootAlias();
+        $subQueryBuilder->select('DISTINCT(' . $rootAlias . '.' . $this->classMetadata->getIdentifierFieldNames()[0]. ') AS id');
+        $subQuery = $this->repository->getQuery($subQueryBuilder->getStatement());
+        $subQuery->setParams($subQueryBuilder->getBindedValues());
+        /** @var Collection<T> $results */
+        $results = $subQuery->query($this->repository->getCollection(new HydratorArray()));
+        $ids = [];
+        /** @var array<int> $result */
+        foreach ($results as $result) {
+            $ids[] = $result['id'];
+        }
+
+        return $ids;
+    }
+
     public function count(): int
     {
         return $this->count ??= (int) array_sum(array_map(
@@ -61,7 +99,7 @@ final class Paginator implements Countable, IteratorAggregate
 
     private function getCountQuery(): Query
     {
-        $countBuilder = clone $this->queryBuilder;
+        $countBuilder = $this->countQueryBuilder ?? clone $this->queryBuilder;
         $rootAlias    = $countBuilder->getRootAlias();
         $countBuilder
             ->select(
