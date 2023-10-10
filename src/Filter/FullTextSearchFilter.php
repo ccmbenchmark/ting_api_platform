@@ -47,6 +47,8 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
         if (
             $value === null
             || ! $this->isPropertyEnabled($property, $resourceClass)
+            || ! isset($this->properties[$property])
+            || ! is_array($this->properties[$property])
         ) {
             return;
         }
@@ -67,7 +69,7 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
                 }
 
                 $caseSensitive = true;
-                $strategy = $this->normalizeStrategy($strategy ?? self::STRATEGY_EXACT);
+                $strategy = $this->normalizeStrategy($strategy);
 
                 // prefixing the strategy with i makes it case-insensitive
                 if (str_starts_with($strategy, 'i')) {
@@ -101,18 +103,6 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
         };
     }
 
-    private function getType(string|null $tingType): string
-    {
-        return match ($tingType) {
-            'json' => 'array',
-            'int' => 'int',
-            'bool' => 'bool',
-            'datetime' => DateTime::class,
-            'double' => 'float',
-            default => 'string',
-        };
-    }
-
     /**
      * @param class-string<T> $resourceClass
      *
@@ -128,7 +118,7 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
         if ($properties === null) {
             $properties = array_fill_keys($this->getClassMetadata($resourceClass)->getFieldNames(), null);
         }
-        foreach ($properties as $property => $unused) {
+        foreach ($properties as $property => $strategy) {
             $propertyName = $this->normalizePropertyName($property);
 
             $filterParameterNames = [$propertyName, $propertyName . '[]'];
@@ -137,6 +127,7 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
                     'property' => $propertyName,
                     'type' => 'string',
                     'required' => false,
+                    'strategy' => $this->normalizeStrategy($strategy),
                     'is_collection' => str_ends_with((string) $filterParameterName, '[]'),
                 ];
             }
@@ -151,7 +142,7 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
         QueryNameGenerator $queryNameGenerator,
         string $alias,
         string $field,
-        ?string $value,
+        string|int|null $value,
         bool $caseSensitive,
     ): string {
         $wrapCase = $this->createWrapCase($caseSensitive);
@@ -164,7 +155,7 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
             return sprintf('%s = %s', $wrapCase($aliasedField), $wrapCase(':' . $valueParameter));
         }
 
-        $queryBuilder->bindValue($valueParameter, $caseSensitive ? $value : strtolower($value));
+        $queryBuilder->bindValue($valueParameter, $caseSensitive ? $value : strtolower((string) $value));
 
         return match ($strategy) {
             self::STRATEGY_PARTIAL => sprintf(
