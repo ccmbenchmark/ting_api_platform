@@ -10,7 +10,10 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 
 use function is_object;
 
-/** @template T of object */
+/**
+ * @template T of object
+ * @implements ProcessorInterface<void>
+ */
 final class RemoveProcessor implements ProcessorInterface
 {
     public function __construct(private readonly ManagerRegistry $managerRegistry)

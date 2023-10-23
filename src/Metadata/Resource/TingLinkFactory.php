@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace CCMBenchmark\Ting\ApiPlatform\Metadata\Resource;
 
 use ApiPlatform\Api\ResourceClassResolverInterface;
-use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
-use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Metadata;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\LinkFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\PropertyLinkFactoryInterface;
@@ -25,34 +24,29 @@ final class TingLinkFactory implements LinkFactoryInterface, PropertyLinkFactory
     }
 
     /**
-     * @param ApiResource<T>|Operation<T> $operation
-     *
      * @inheritDoc
      */
-    public function createLinkFromProperty(ApiResource|Operation $operation, string $property): Link
+    public function createLinkFromProperty(Metadata $operation, string $property): Link
     {
         return $this->linkFactory->createLinkFromProperty($operation, $property);
     }
 
     /**
-     * @param ApiResource<T>|Operation<T> $operation
-     *
      * @inheritDoc
      */
-    public function createLinksFromIdentifiers(ApiResource|Operation $operation): array
+    public function createLinksFromIdentifiers(Metadata $operation): array
     {
         return $this->linkFactory->createLinksFromIdentifiers($operation);
     }
 
     /**
-     * @param ApiResource<T>|Operation<T> $operation
-     *
      * @inheritDoc
      */
-    public function createLinksFromRelations(ApiResource|Operation $operation): array
+    public function createLinksFromRelations(Metadata $operation): array
     {
         $links = $this->linkFactory->createLinksFromRelations($operation);
 
+        /** @var class-string<object>|null $resourceClass */
         $resourceClass = $operation->getClass();
         if ($resourceClass === null) {
             return $links;
@@ -90,11 +84,9 @@ final class TingLinkFactory implements LinkFactoryInterface, PropertyLinkFactory
     }
 
     /**
-     * @param ApiResource<T>|Operation<T> $operation
-     *
      * @inheritDoc
      */
-    public function createLinksFromAttributes(ApiResource|Operation $operation): array
+    public function createLinksFromAttributes(Metadata $operation): array
     {
         return $this->linkFactory->createLinksFromAttributes($operation);
     }
