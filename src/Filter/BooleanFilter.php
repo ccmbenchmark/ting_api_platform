@@ -72,6 +72,13 @@ final class BooleanFilter extends AbstractFilter
      */
     public function getDescription(string $resourceClass): array
     {
+        if (!isset($this->filtersDescriptions) && isset($this->filterDescriptionGetter)) {
+            $this->filtersDescriptions = $this->filterDescriptionGetter->getDescriptions();
+        }
+        if (isset ($this->filtersDescriptions[$resourceClass])) {
+            return $this->filtersDescriptions[$resourceClass];
+        }
+
         $description = [];
 
         $properties = $this->properties ?? array_fill_keys($this->getClassMetadata($resourceClass)->getFieldNames(), null);

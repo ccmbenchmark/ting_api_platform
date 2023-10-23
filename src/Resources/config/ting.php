@@ -209,4 +209,11 @@ return static function (ContainerConfigurator $configurator): void {
             service(ManagerRegistry::class),
             service('.inner'),
         ]);
+
+    $services->set(\CCMBenchmark\Ting\ApiPlatform\Warmer\FilterWarmer::class, \CCMBenchmark\Ting\ApiPlatform\Warmer\FilterWarmer::class)
+        ->args([
+            service('ting.metadatarepository')
+        ])
+        ->tag('kernel.cache_warmer')
+    ;
 };

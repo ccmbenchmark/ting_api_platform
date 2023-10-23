@@ -7,7 +7,7 @@
         "php": ">=8.1",
         "api-platform/core": "^3.2",
         "ccmbenchmark/ting_bundle": "^3.6",
-        "ccmbenchmark/ting": "^3.7"
+        "ccmbenchmark/ting": "^3.7.2"
     },
     "require-dev": {
         "phpstan/extension-installer": "^1.2",
