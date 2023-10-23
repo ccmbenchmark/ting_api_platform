@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace CCMBenchmark\Ting\ApiPlatform\Metadata\Resource;
 
 use ApiPlatform\Api\ResourceClassResolverInterface;
-use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Metadata;
-use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\LinkFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\PropertyLinkFactoryInterface;
