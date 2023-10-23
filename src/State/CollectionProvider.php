@@ -48,6 +48,7 @@ final class CollectionProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {
+        /** @var class-string<T> $entityClass */
         $entityClass = $operation->getClass() ?? '';
         if ($entityClass === '') {
             return null;

@@ -39,6 +39,7 @@ final class ItemProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|null
     {
+        /** @var class-string<T> $entityClass */
         $entityClass = $operation->getClass() ?? '';
         if ($entityClass === '') {
             return null;

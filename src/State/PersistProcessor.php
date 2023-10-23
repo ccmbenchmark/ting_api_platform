@@ -12,6 +12,7 @@ use function is_object;
 
 /**
  * @template T of object
+ * @implements ProcessorInterface<T>
  * TODO: Handle PUT requests
  */
 final class PersistProcessor implements ProcessorInterface
@@ -21,9 +22,12 @@ final class PersistProcessor implements ProcessorInterface
     }
 
     /**
+     * @param T $data
      * @param Operation<T>         $operation
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
+     *
+     * @return T
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
