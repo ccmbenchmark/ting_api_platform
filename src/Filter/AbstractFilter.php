@@ -39,6 +39,9 @@ abstract class AbstractFilter implements Filter, WarmableFilterInterface
     use WarmableFilterTrait;
 
     protected LoggerInterface $logger;
+    /**
+     * @var array<string,array<string,mixed>>|null
+     */
     protected ?array $filtersDescriptions = null;
 
     /** @param array<string, string|array{default_direction?: string, nulls_comparison?: string}>|null $properties */

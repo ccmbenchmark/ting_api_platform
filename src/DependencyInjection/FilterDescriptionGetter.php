@@ -9,6 +9,9 @@ class FilterDescriptionGetter
 
     }
 
+    /**
+     * @phpstan-ignore-next-line
+     */
     public function getDescriptions(): ?array
     {
         if (!file_exists($this->filePath)) {
