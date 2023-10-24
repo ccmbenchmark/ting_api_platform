@@ -123,6 +123,7 @@ final class SelectBuilder
     public function resetJoins(): self
     {
         $this->joins = [];
+        $this->joinRootAliases = [];
 
         return $this;
     }

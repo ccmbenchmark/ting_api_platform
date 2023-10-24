@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace CCMBenchmark\Ting\ApiPlatform\Ting\Pagination;
 
 use CCMBenchmark\Ting\ApiPlatform\Ting\ClassMetadata;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\Expr\Join;
+use CCMBenchmark\Ting\ApiPlatform\Ting\Query\JoinType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\Query\Query;
 use CCMBenchmark\Ting\Repository\Collection;
@@ -21,6 +23,7 @@ use function current;
 use function implode;
 use function iterator_to_array;
 use function sprintf;
+use function str_contains;
 
 /**
  * @template T of object
@@ -117,11 +120,46 @@ final class Paginator implements Countable, IteratorAggregate
             ->resetOrderBy()
             ->offset(0)
             ->limit(0);
-
+        $this->keepOnlyMandatoryJoinsForCountQuery($countBuilder);
         $countQuery = $this->repository->getQuery($countBuilder->getStatement());
         $countQuery->setParams($countBuilder->getBindedValues());
 
         return $countQuery;
+    }
+
+    private function keepOnlyMandatoryJoinsForCountQuery(SelectBuilder $countBuilder): void
+    {
+        $initialJoins = $countBuilder->getJoins()[$countBuilder->getRootAlias()];
+        $countBuilder->resetJoins();
+        foreach ($initialJoins as $join) {
+            if ($this->joinIsInWhereClauses($join, $countBuilder) || $this->joinIsInWhereInSubQueries($join, $countBuilder) || $join->type === JoinType::INNER_JOIN) {
+                $countBuilder->join($join->type, $join->join, $join->alias, $join->conditionType, $join->condition);
+            }
+        }
+    }
+
+    private function joinIsInWhereClauses(Join $join, SelectBuilder $builder): bool
+    {
+        $whereClauses = $builder->getWhere();
+        foreach ($whereClauses as $whereClause) {
+            if (str_contains($whereClause, $join->alias)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function joinIsInWhereInSubQueries(Join $join, SelectBuilder $builder): bool
+    {
+        $whereInSubQueries = $builder->getWhereInSubqueries();
+        foreach ($whereInSubQueries as $whereInSubQuery) {
+            if (str_contains($whereInSubQuery->property, $join->alias) || str_contains($whereInSubQuery->subQuery->getStatement(), $join->alias)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getQueryBuilder(): SelectBuilder
