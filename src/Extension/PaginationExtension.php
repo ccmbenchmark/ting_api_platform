@@ -83,8 +83,12 @@ final class PaginationExtension implements QueryResultCollectionExtension
             return [];
         }
         $tingPaginator = new TingPaginator($queryBuilder, $manager->getRepository(), $hydrator, $manager->getClassMetadata());
-        if (!is_null($operation) && $this->hasAdditionalDistinctQueryRequirement($queryBuilder, $operation->getClass(), $context)) {
-            $tingPaginator->addRequiredWhereInClause();
+        if (!is_null($operation)) {
+            /** @var  class-string<T>|null $operationClassName */
+            $operationClassName = $operation->getClass();
+            if ($this->hasAdditionalDistinctQueryRequirement($queryBuilder, $operationClassName, $context)) {
+                $tingPaginator->addRequiredWhereInClause();
+            }
         }
 
         if ($this->pagination->isPartialEnabled($operation, $context)) {
