@@ -129,11 +129,16 @@ final class Paginator implements Countable, IteratorAggregate
 
     private function keepOnlyMandatoryJoinsForCountQuery(SelectBuilder $countBuilder): void
     {
-        $initialJoins = $countBuilder->getJoins()[$countBuilder->getRootAlias()];
+        $initialJoinsArray = $countBuilder->getJoins();
+        if ($initialJoinsArray === []) {
+            return;
+        }
         $countBuilder->resetJoins();
-        foreach ($initialJoins as $join) {
-            if ($this->joinIsInWhereClauses($join, $countBuilder) || $this->joinIsInWhereInSubQueries($join, $countBuilder) || $join->type === JoinType::INNER_JOIN) {
-                $countBuilder->join($join->type, $join->join, $join->alias, $join->conditionType, $join->condition);
+        foreach ($initialJoinsArray as $joins) {
+            foreach ($joins as $join) {
+                if ($this->joinIsInWhereClauses($join, $countBuilder) || $this->joinIsInWhereInSubQueries($join, $countBuilder) || $join->type === JoinType::INNER_JOIN) {
+                    $countBuilder->join($join->type, $join->join, $join->alias, $join->conditionType, $join->condition);
+                }
             }
         }
     }

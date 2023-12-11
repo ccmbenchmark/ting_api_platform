@@ -1,5 +1,13 @@
 # Changelog
 
+## 2023-12-11
+### Fixed
+* Fixed pagination for queries without joins
+
+## 2023-11-28
+### Fixed
+* Fixed handling of "to Many" relationships for pagination
+
 ## 2023-10-23
 ### Added
 * Add fulltext filter
