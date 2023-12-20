@@ -1,5 +1,9 @@
 # Changelog
 
+## 2023-12-20
+### Fixed
+* Fixed PaginationExtension for queries without joins
+
 ## 2023-12-11
 ### Fixed
 * Fixed pagination for queries without joins
