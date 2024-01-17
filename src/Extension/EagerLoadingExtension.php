@@ -166,7 +166,13 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
                 $inAttributes = null;
             }
 
-            if ($inAttributes === false || $propertyMetadata->isReadable() === false) {
+            $fetchEager = $propertyMetadata->getFetchEager();
+
+            if (false === $fetchEager) {
+                continue;
+            }
+
+            if (true !== $fetchEager && (false === $inAttributes || false === $propertyMetadata->isReadable())) {
                 continue;
             }
 
