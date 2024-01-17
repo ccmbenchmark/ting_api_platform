@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2024-01-18
-* Supports fetchEager API property
+* Supports fetchEager API property and forceEager on operation
 
 ## 2023-12-11
 ### Fixed

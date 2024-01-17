@@ -18,7 +18,8 @@ namespace CCMBenchmark\Ting\ApiPlatform\Ting\Association;
  *     type: AssociationType,
  *     nullable: bool,
  *     mappedBy: string|null,
- *     inversedBy: string|null
+ *     inversedBy: string|null,
+ *     fetch?: int
  * }
  */
 interface MetadataAssociation
