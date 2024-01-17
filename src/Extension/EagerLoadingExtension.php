@@ -163,7 +163,7 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
             }
 
             if (!isset($association['fetch'])) {
-                $association['fetch'] = null;
+                $association['fetch'] = ClassMetadataInfo::FETCH_LAZY;
             }
 
             if (
