@@ -10,6 +10,7 @@ use ApiPlatform\Exception\RuntimeException;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Property\Factory\PropertyMetadataFactoryInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
+use CCMBenchmark\Ting\ApiPlatform\Mapping\ClassMetadataInfo;
 use CCMBenchmark\Ting\ApiPlatform\State\CollectionProvider;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\AssociationType;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Association\MetadataAssociation;
@@ -46,6 +47,7 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
         private readonly ClassMetadataFactoryInterface|null $classMetadataFactory = null,
         private readonly int $maxJoins = 30,
         private readonly bool $fetchPartial = false,
+        private readonly bool $forceEager = true,
     ) {
     }
 
@@ -77,6 +79,7 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
     ): void {
         $options = [];
 
+        $forceEager = $operation?->getForceEager() ?? $this->forceEager;
         $fetchPartial = $operation?->getFetchPartial() ?? $this->fetchPartial;
 
         if (! isset($context['groups']) && ! isset($context['attributes'])) {
@@ -103,6 +106,7 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
             $hydratorRelational,
             $queryNameGenerator,
             $resourceClass,
+            $forceEager,
             $fetchPartial,
             $queryBuilder->getRootAlias(),
             $options,
@@ -120,6 +124,7 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
         HydratorRelational $hydratorRelational,
         QueryNameGenerator $queryNameGenerator,
         string $resourceClass,
+        bool $forceEager,
         bool $fetchPartial,
         string $parentAlias,
         array $options = [],
@@ -157,6 +162,19 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
                 continue;
             }
 
+            if (!isset($association['fetch'])) {
+                $association['fetch'] = ClassMetadataInfo::FETCH_LAZY;
+            }
+
+            if (
+                // Always skip extra lazy associations
+                ClassMetadataInfo::FETCH_EXTRA_LAZY === $association['fetch']
+                // We don't want to interfere with ting on this association
+                || (false === $forceEager && ClassMetadataInfo::FETCH_EAGER !== $association['fetch'])
+            ) {
+                continue;
+            }
+
             $childNormalizationContext = $normalizationContext;
             if (isset($normalizationContext[AbstractNormalizer::ATTRIBUTES])) {
                 if ($inAttributes = isset($normalizationContext[AbstractNormalizer::ATTRIBUTES][$association['fieldName']])) {
@@ -166,7 +184,13 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
                 $inAttributes = null;
             }
 
-            if ($inAttributes === false || $propertyMetadata->isReadable() === false) {
+            $fetchEager = $propertyMetadata->getFetchEager();
+
+            if (false === $fetchEager) {
+                continue;
+            }
+
+            if (true !== $fetchEager && (false === $inAttributes || false === $propertyMetadata->isReadable())) {
                 continue;
             }
 
@@ -259,6 +283,7 @@ final class EagerLoadingExtension implements QueryCollectionExtension, QueryItem
                 $hydratorRelational,
                 $queryNameGenerator,
                 $association['targetEntity'],
+                $forceEager,
                 $fetchPartial,
                 $associationAlias,
                 $options,

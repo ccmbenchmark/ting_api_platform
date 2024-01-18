@@ -126,11 +126,13 @@ final class PaginationExtension implements QueryResultCollectionExtension
         $metadata = $this->managerRegistry->getManagerForClass($operationClassName)?->getClassMetadata();
         if (!is_null($metadata)) {
             $rootAlias = $selectBuilder->getRootAlias();
-            foreach ($selectBuilder->getJoins()[$rootAlias] as $join) {
-                $joinData = explode('.', $join->join);
-                $mapping = $metadata->getAssociationMapping($joinData[1]);
-                if ($mapping['type'] === AssociationType::TO_MANY) {
-                    return true;
+            if (isset($selectBuilder->getJoins()[$rootAlias])) {
+                foreach ($selectBuilder->getJoins()[$rootAlias] as $join) {
+                    $joinData = explode('.', $join->join);
+                    $mapping = $metadata->getAssociationMapping($joinData[1]);
+                    if ($mapping['type'] === AssociationType::TO_MANY) {
+                        return true;
+                    }
                 }
             }
         }
