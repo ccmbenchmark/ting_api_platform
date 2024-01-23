@@ -16,6 +16,7 @@ use CCMBenchmark\Ting\ApiPlatform\Filter\RangeFilter;
 use CCMBenchmark\Ting\ApiPlatform\Metadata\Property\TingPropertyMetadataFactory;
 use CCMBenchmark\Ting\ApiPlatform\Metadata\Resource\TingLinkFactory;
 use CCMBenchmark\Ting\ApiPlatform\Metadata\Resource\TingResourceMetadataCollectionFactory;
+use CCMBenchmark\Ting\ApiPlatform\Serializer\Normalizer\GeometryNormalizer;
 use CCMBenchmark\Ting\ApiPlatform\State\CollectionProvider;
 use CCMBenchmark\Ting\ApiPlatform\State\ItemProvider;
 use CCMBenchmark\Ting\ApiPlatform\State\LinksHandler;
@@ -215,5 +216,8 @@ return static function (ContainerConfigurator $configurator): void {
             service('ting.metadatarepository')
         ])
         ->tag('kernel.cache_warmer')
+    ;
+    $services->set(GeometryNormalizer::class)
+        ->tag('serializer.normalizer')
     ;
 };
