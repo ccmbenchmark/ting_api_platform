@@ -11,8 +11,9 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use function is_object;
 
 /**
+ * @phpstan-ignore-next-line
  * @template T of object
- * @implements ProcessorInterface<void>
+ * @implements ProcessorInterface<T>
  */
 final class RemoveProcessor implements ProcessorInterface
 {
@@ -21,6 +22,7 @@ final class RemoveProcessor implements ProcessorInterface
     }
 
     /**
+     * @param T $data
      * @param Operation<T>         $operation
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context

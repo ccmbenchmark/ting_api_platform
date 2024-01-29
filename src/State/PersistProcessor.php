@@ -11,6 +11,7 @@ use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use function is_object;
 
 /**
+ * @phpstan-ignore-next-line
  * @template T of object
  * @implements ProcessorInterface<T>
  * TODO: Handle PUT requests

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024-01-25
+### Fixed
+* Fixed FilterCompilerPass trying to add method call setFilterDescriptionGetter() to Api Platform filter services not implementing it
+
 ## 2024-01-18
 * Supports fetchEager API property and forceEager on operation
 
