@@ -1,5 +1,10 @@
 # Changelog
 
+## 2024-01-29
+### Added
+* Add GeometryNormalizer to handle Geometry Type
+* Update minimal Ting version to 3.8.0
+
 ## 2024-01-25
 ### Fixed
 * Fixed FilterCompilerPass trying to add method call setFilterDescriptionGetter() to Api Platform filter services not implementing it
