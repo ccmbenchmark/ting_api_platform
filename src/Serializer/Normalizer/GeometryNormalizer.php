@@ -10,21 +10,24 @@ use Brick\Geo\IO\GeoJSONWriter;
 use Exception;
 use Symfony\Component\PropertyInfo\Type;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
-use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
-
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 use function is_array;
 use function is_subclass_of;
 use function json_encode;
 
-/**
- *
- * @method array getSupportedTypes(?string $format)
- */
-final class GeometryNormalizer implements DenormalizerInterface, CacheableSupportsMethodInterface, NormalizerInterface
+final class GeometryNormalizer implements NormalizerInterface, DenormalizerInterface
 {
+
+    /** @return array<string,bool> */
+    public function getSupportedTypes(?string $format): array
+    {
+        return [
+            Geometry::class => true,
+        ];
+    }
+
     /**
      * @param mixed $data
      * @param array{deserialization_path?: null|string} $context
@@ -47,7 +50,7 @@ final class GeometryNormalizer implements DenormalizerInterface, CacheableSuppor
 
         try {
             $geometryString = json_encode($data);
-            if (false === $geometryString){
+            if (false === $geometryString) {
                 throw new Exception("Cannot encode to json to array");
             }
 
@@ -77,21 +80,16 @@ final class GeometryNormalizer implements DenormalizerInterface, CacheableSuppor
         }
     }
 
-    public function supportsDenormalization(mixed $data, string $type, ?string $format = null): bool
+    public function supportsDenormalization(mixed $data, string $type, ?string $format = null, array $context = []): bool
     {
         return class_exists(Geometry::class) && ($type === Geometry::class || is_subclass_of($type, Geometry::class));
-    }
-
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return true;
     }
 
     /**
      * @param Geometry $object
      * @param array{deserialization_path?: null|string} $context
      */
-    public function normalize(mixed $object, ?string $format = null, array $context = [])
+    public function normalize(mixed $object, ?string $format = null, array $context = []): string
     {
         if (!class_exists(Geometry::class) || !class_exists(GeoJSONWriter::class)) {
             throw new \RuntimeException("Package brick/geo is required to handle Geometry. Please run `composer require brick/geo`");
@@ -109,7 +107,7 @@ final class GeometryNormalizer implements DenormalizerInterface, CacheableSuppor
         return (new GeoJSONWriter())->write($object);
     }
 
-    public function supportsNormalization(mixed $data, ?string $format = null): bool
+    public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
     {
         return class_exists(Geometry::class) && $data instanceof Geometry;
     }
