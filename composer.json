@@ -12,7 +12,8 @@
     "require-dev": {
         "phpstan/extension-installer": "^1.2",
         "phpstan/phpstan": "^1.0",
-        "phpstan/phpstan-symfony": "^1.0"
+        "phpstan/phpstan-symfony": "^1.0",
+        "brick/geo": "^0.10.0"
     },
     "autoload": {
         "files": [
@@ -31,5 +32,8 @@
         "allow-plugins": {
             "phpstan/extension-installer": true
         }
+    },
+    "suggest": {
+        "brick/geo": "Allow support of MariaDB Geometry type"
     }
 }
