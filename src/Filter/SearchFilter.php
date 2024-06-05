@@ -166,6 +166,8 @@ final class SearchFilter extends AbstractFilter implements SearchFilterInterface
             }
         }
 
+        $this->filtersDescriptions[$resourceClass] = $description;
+
         return $description;
     }
 

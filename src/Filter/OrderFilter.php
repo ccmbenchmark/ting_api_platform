@@ -158,6 +158,8 @@ final class OrderFilter extends AbstractFilter implements OrderFilterInterface
             ];
         }
 
+        $this->filtersDescriptions[$resourceClass] = $description;
+
         return $description;
     }
 

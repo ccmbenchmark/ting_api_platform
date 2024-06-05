@@ -179,6 +179,8 @@ final class DateFilter extends AbstractFilter implements DateFilterInterface
             $description += $this->getFilterDescription($property, self::PARAMETER_STRICTLY_AFTER);
         }
 
+        $this->filtersDescriptions[$resourceClass] = $description;
+
         return $description;
     }
 

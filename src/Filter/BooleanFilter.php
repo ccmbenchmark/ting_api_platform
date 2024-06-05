@@ -96,6 +96,8 @@ final class BooleanFilter extends AbstractFilter
             ];
         }
 
+        $this->filtersDescriptions[$resourceClass] = $description;
+
         return $description;
     }
 

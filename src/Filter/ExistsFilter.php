@@ -133,6 +133,8 @@ final class ExistsFilter extends AbstractFilter implements ExistsFilterInterface
             ];
         }
 
+        $this->filtersDescriptions[$resourceClass] = $description;
+
         return $description;
     }
 

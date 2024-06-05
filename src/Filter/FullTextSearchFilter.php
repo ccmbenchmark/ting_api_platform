@@ -112,6 +112,12 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
      */
     public function getDescription(string $resourceClass): array
     {
+        if (!isset($this->filtersDescriptions) && isset($this->filterDescriptionGetter)) {
+            $this->filtersDescriptions = $this->filterDescriptionGetter->getDescriptions();
+        }
+        if (isset ($this->filtersDescriptions[$resourceClass])) {
+            return $this->filtersDescriptions[$resourceClass];
+        }
         $description = [];
 
         $properties = $this->properties;
@@ -132,6 +138,8 @@ final class FullTextSearchFilter extends AbstractFilter implements SearchFilterI
                 ];
             }
         }
+
+        $this->filtersDescriptions[$resourceClass] = $description;
 
         return $description;
     }
