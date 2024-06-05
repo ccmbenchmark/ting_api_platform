@@ -103,6 +103,8 @@ final class RangeFilter extends AbstractFilter implements RangeFilterInterface
             $description += $this->getFilterDescription($property, self::PARAMETER_LESS_THAN_OR_EQUAL);
         }
 
+        $this->filtersDescriptions[$resourceClass] = $description;
+
         return $description;
     }
 
