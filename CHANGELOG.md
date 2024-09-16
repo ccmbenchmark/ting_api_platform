@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024-09-16
+### Added
+* Add enum filter
+
 ## 2024-01-29
 ### Added
 * Add GeometryNormalizer to handle Geometry Type
