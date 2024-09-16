@@ -448,8 +448,10 @@ final class SelectBuilder
             $this->where,
         );
 
-        foreach ($conds ?? [] as $cond) {
-            $select->where($cond);
+        if (!empty($conds)) {
+            foreach ($conds as $cond) {
+                $select->where($cond);
+            }
         }
 
         foreach ($this->whereInSubqueries as $whereInSubquery) {
@@ -480,7 +482,7 @@ final class SelectBuilder
             $this->orderBy,
         );
 
-        if ($specs === null) {
+        if (empty($specs)) {
             return $this;
         }
 

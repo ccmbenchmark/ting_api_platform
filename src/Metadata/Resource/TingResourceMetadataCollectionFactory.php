@@ -38,7 +38,7 @@ final class TingResourceMetadataCollectionFactory implements ResourceMetadataCol
                     /** @var class-string<object> $entityClass */
                     $entityClass = $operation->getClass() ?? '';
 
-                    if ($entityClass === '' || $this->managerRegistry->getManagerForClass($entityClass) === null) {
+                    if (empty($entityClass) || $this->managerRegistry->getManagerForClass($entityClass) === null) {
                         continue;
                     }
 
@@ -55,7 +55,7 @@ final class TingResourceMetadataCollectionFactory implements ResourceMetadataCol
                     /** @var class-string<object> $entityClass */
                     $entityClass = $graphQlOperation->getClass() ?? '';
 
-                    if ($entityClass === '' || $this->managerRegistry->getManagerForClass($entityClass) === null) {
+                    if (empty($entityClass) || $this->managerRegistry->getManagerForClass($entityClass) === null) {
                         continue;
                     }
 
