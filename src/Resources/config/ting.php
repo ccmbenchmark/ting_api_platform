@@ -9,6 +9,7 @@ use CCMBenchmark\Ting\ApiPlatform\Extension\OrderExtension;
 use CCMBenchmark\Ting\ApiPlatform\Extension\PaginationExtension;
 use CCMBenchmark\Ting\ApiPlatform\Filter\BooleanFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\DateFilter;
+use CCMBenchmark\Ting\ApiPlatform\Filter\EnumFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\ExistsFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\NumericFilter;
 use CCMBenchmark\Ting\ApiPlatform\Filter\OrderFilter;
@@ -117,6 +118,16 @@ return static function (ContainerConfigurator $configurator): void {
             param('api_platform.collection.order_nulls_comparison'),
         ]);
     $services->alias(OrderFilter::class, 'ting.api_platform.order_filter');
+
+    $services->set('ting.api_platform.enum_filter', EnumFilter::class)
+        ->abstract()
+        ->args([
+            service(ManagerRegistry::class),
+            service('logger')->ignoreOnInvalid(),
+            null,
+            service('api_platform.name_converter')->ignoreOnInvalid()
+        ]);
+    $services->alias(EnumFilter::class, 'ting.api_platform.enum_filter');
 
     $services->set('ting.api_platform.range_filter', RangeFilter::class)
         ->abstract()
