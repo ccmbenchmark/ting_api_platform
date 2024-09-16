@@ -50,7 +50,7 @@ final class CollectionProvider implements ProviderInterface
     {
         /** @var class-string<T> $entityClass */
         $entityClass = $operation->getClass() ?? '';
-        if ($entityClass === '') {
+        if (empty($entityClass)) {
             return null;
         }
 
