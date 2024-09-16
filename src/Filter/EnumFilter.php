@@ -6,24 +6,18 @@ namespace CCMBenchmark\Ting\ApiPlatform\Filter;
 use ApiPlatform\Api\FilterInterface as LegacyFilterInterface;
 use ApiPlatform\Doctrine\Common\Filter\OrderFilterInterface;
 use ApiPlatform\Metadata\Operation;
+use InvalidArgumentException;
 use CCMBenchmark\Ting\ApiPlatform\Filter\AbstractFilter;
 use CCMBenchmark\Ting\ApiPlatform\Ting\ManagerRegistry;
 use CCMBenchmark\Ting\ApiPlatform\Ting\Query\SelectBuilder;
 use CCMBenchmark\Ting\ApiPlatform\Util\QueryNameGenerator;
 use CCMBenchmark\Ting\Repository\HydratorRelational;
-use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
 final class EnumFilter extends AbstractFilter
 {
 
-    /**
-     * @param ManagerRegistry $managerRegistry
-     * @param LoggerInterface|null $logger
-     * @param array|null $properties
-     * @param NameConverterInterface|null $nameConverter
-     */
     public function __construct(
         protected ManagerRegistry $managerRegistry,
         LoggerInterface|null $logger = null,
@@ -49,28 +43,33 @@ final class EnumFilter extends AbstractFilter
         }
 
         $alias = $queryBuilder->getRootAlias();
-        $field = $property;
+        $value = $this->normalizeValue($value);
 
-        $queryBuilder->where(sprintf('%s.%s LIKE "%s"', $alias, $field, $value));
+        if ($value === null) {
+            return;
+        }
 
+        $queryBuilder->where(sprintf('%s.%s LIKE "%s"', $alias, $property, $value));
     }
 
     /**
      * @param class-string<T> $resourceClass
      *
-     * @return array<string, array{property: string, type: string, required: bool, schema: array{type: string, enum: non-empty-list<string>}}>
+     * @return array<string, array{property: string, type: string, required: bool, schema: array{type: string, enum: array<string>}}>
      *
      * @template T of object
      */
     public function getDescription(string $resourceClass): array
     {
-
-        $description = [];
         $properties = $this->properties;
         if ($properties === null) {
             $properties = array_fill_keys($this->getClassMetadata($resourceClass)->getFieldNames(), null);
         }
 
+        $description = [];
+        /**
+         * @var string $propertyOptions
+         */
         foreach ($properties as $property => $propertyOptions) {
             if (! $this->isPropertyMapped($property, $resourceClass)) {
                 continue;
@@ -94,9 +93,24 @@ final class EnumFilter extends AbstractFilter
         return $description;
     }
 
-    function isEnum(string $className): void {
+    protected function isEnum(string $className): void {
+
         if (!enum_exists($className)) {
-            throw new InvalidArgumentException("$className should be ENUM type.");
+            throw new InvalidArgumentException("$className should be string type.");
         }
     }
+
+    protected function normalizeValue(mixed $value): string|null
+    {
+        if ($value !== null && !is_string($value)) {
+            return null;
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        return $value;
+    }
+
 }
